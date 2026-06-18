@@ -42,12 +42,13 @@ When in doubt about scope, complexity, or polish: choose the option that produce
 
 3. **userId from JWT, never from request.** Cross-user data leakage is unforgivable. `@CurrentUser()` decorator, always.
 
-4. **Vietnamese for conversation and user-facing copy, English for code artifacts.** This rule has three dimensions:
+4. **English for code AND UI default; Vietnamese for conversation with Đạt.** This rule has four dimensions:
    - **Conversation with Đạt → Vietnamese.** Explanations, reminders, proposals, questions, and discussion happen in Vietnamese. Đạt thinks and reasons in Vietnamese; respect that.
    - **Code artifacts → English.** Variable names, function names, code comments, commit messages, branch names, ADR documents, PR descriptions, README, technical docs — all English. This is industry standard and aids portfolio defensibility.
-   - **User-facing UI copy → Vietnamese.** Strings shown to end users, error messages in the UI, button labels, form validation messages — Vietnamese.
+   - **User-facing UI strings → English (MVP) via i18n keys.** Default UI locale is English. NEVER hardcode user-facing strings in components — use next-intl translation keys from `apps/web/messages/en.json`. Vietnamese locale (`vi.json`) added in Phase 10. See PRD Section 12 for full i18n strategy.
+   - **Backend error responses → machine-readable error codes**, NOT human strings. UI layer translates codes to localized messages. Example: backend returns `{ errorCode: 'ARTICLE_LANGUAGE_UNSUPPORTED', context: { language: 'vi' } }`, frontend renders via `t('articles.errors.unsupportedLanguage', { language: 'Vietnamese' })`.
 
-   Mixed example: Khi giải thích cho Đạt về một service, viết tiếng Việt. Code trong service đó dùng English variable names. Error message returned từ service đó (nếu user-facing) bằng Vietnamese. Commit message: English.
+   Mixed example: Khi giải thích cho Đạt về một service, viết tiếng Việt. Code trong service đó dùng English variable names. Backend response dùng error code. Frontend translate code thành English UI string qua i18n key. Commit message: English.
 
    Technical terms (TypeScript, repository pattern, vector embedding, etc.) giữ nguyên English ngay cả trong conversation Vietnamese — không cố dịch sang tiếng Việt awkward.
 
@@ -321,23 +322,24 @@ export class ArticlesController {
 ### Error handling
 
 ```typescript
-// Domain errors → 400/404
-throw new ArticleNotFoundError(id);  // → 404
+// Domain errors → 400/404 with error code
+throw new ArticleNotFoundError(id);  // → 404 { errorCode: 'ARTICLE_NOT_FOUND', context: { id } }
 
 // User input errors → 400 (handled by ValidationPipe)
 // Unauthorized → 401 (JwtAuthGuard)
 // Forbidden → 403
-// Internal → 500 (log full, return generic Vietnamese message)
+// Internal → 500 (log full stack, return generic { errorCode: 'INTERNAL_ERROR' })
 
 // AI errors are wrapped
 try {
   await this.aiProvider.generate(prompt);
 } catch (e) {
   throw new AIProcessingError('Failed to generate content', { cause: e });
+  // → { errorCode: 'AI_PROCESSING_FAILED', context: { stage: 'generate' } }
 }
 ```
 
-Global exception filter formats all errors consistently. Vietnamese messages for user-facing errors.
+Global exception filter formats all errors as `{ errorCode, context, message?: string }`. The optional `message` field is English for developer debugging. Frontend uses `errorCode` + `context` to render localized user-facing message via next-intl. Per Rule #4 and PRD Section 12, backend never returns Vietnamese strings — that's the UI layer's responsibility.
 
 ### Rate limiting
 
@@ -748,8 +750,8 @@ This is a learning project. When implementing significant features, briefly expl
 6. **N+1 queries with Prisma.** Always `include` what you need.
 7. **Returning passwordHash in API responses.** Use Prisma `select` or explicit DTO mapping.
 8. **localStorage for tokens.** XSS risk. Use memory + httpOnly cookies.
-9. **Hardcoded strings in components.** Move to constants for i18n later.
-10. **Mixed Vietnamese/English user copy.** Pick Vietnamese consistently.
+9. **Hardcoded user-facing strings in components.** Per PRD Section 12 and Rule #4, all user-facing strings go through next-intl `t()` calls with keys in `messages/en.json`. Hardcoded strings break i18n architecture from day one.
+10. **Vietnamese strings in UI components.** MVP is English-only UI. Vietnamese locale comes in Phase 10. Don't pre-emptively add Vietnamese — add English keys properly so Vietnamese addition is trivial later.
 11. **Forgetting dark mode.** Every component must work in both modes.
 12. **Adding features not in PRD.** Stay in scope. Suggest, don't act.
 13. **Using Server Actions for API calls.** This project has NestJS backend. Use REST.
@@ -760,6 +762,8 @@ This is a learning project. When implementing significant features, briefly expl
 18. **Premature optimization.** Measure first. Optimize when data shows need.
 19. **AI prompts as string literals in services.** Use versioned prompt templates.
 20. **Forgetting to log AI calls.** Every Gemini/OpenAI call goes through provider that logs to AICallLog.
+21. **Suggesting Docker Compose for local PostgreSQL/Redis dev.** Per PRD Section 3.3 and ADR-0002, local dev connects to Neon `dev` branch + Upstash directly. Docker is ONLY for testcontainers (integration tests) and production image builds. Don't add `docker-compose.yml` for routine dev databases.
+22. **Running migrations against `main` Neon branch directly.** Always migrate `dev` branch first. After validation, migrate `test` and then production `main`. Never let untested migrations hit production data.
 
 ---
 

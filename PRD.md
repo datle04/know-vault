@@ -132,7 +132,7 @@ knowvault/
 ├── .github/
 │   └── workflows/                # CI/CD pipelines
 ├── infra/
-│   └── docker/                   # Dockerfile cho local dev
+│   └── docker/                   # Dockerfile for production builds, NOT local dev databases
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── README.md
@@ -164,6 +164,81 @@ Root `package.json` scripts:
   }
 }
 ```
+
+### 3.3 Local Development Strategy (Hybrid: Cloud + Docker)
+
+KnowVault uses a **hybrid local development model**: cloud databases for dev work, Docker for tests and production builds. This is documented in ADR-0002.
+
+**Cloud-based local dev (primary):**
+
+Local `pnpm dev` connects to cloud services, NOT local Docker containers:
+- PostgreSQL: Neon `dev` branch (`DATABASE_URL` in `.env`)
+- Redis: Upstash dev instance (`REDIS_URL` in `.env`)
+- AI services: same Gemini + OpenAI keys as production
+
+**Why cloud for local dev:**
+- Match production behavior (PgBouncer pooling, network latency, pgvector version)
+- No "works on my machine" pitfalls from version mismatches
+- Onboard friends with just env vars, no Docker required for them
+- Neon branching gives data isolation without Docker volumes complexity
+- Eliminates 1 entire category of bugs (local vs prod database differences)
+
+**Docker is still required, but ONLY for:**
+
+1. **Integration tests** via testcontainers:
+   - `apps/api/test/integration/*.spec.ts` uses ephemeral PostgreSQL + Redis containers
+   - Each test suite spins up containers, runs, tears down
+   - Ensures tests don't pollute dev databases
+
+2. **Production image builds:**
+   - `infra/docker/Dockerfile.api` for Render deployment
+   - Multi-stage build for optimized production image
+
+3. **NOT for routine `pnpm dev`** — that connects to Neon and Upstash directly
+
+**Neon branch strategy:**
+
+| Branch | Purpose | Used by | Reset frequency |
+|--------|---------|---------|-----------------|
+| `main` | Production data | Deployed app on Render | Never (production data) |
+| `dev` | Active development | Local dev (`pnpm dev`) | Periodically as needed |
+| `test` | E2E tests | CI pipeline | Reset before each E2E run |
+
+Branch creation in Phase 0 setup:
+```bash
+neonctl branches create --name dev --parent main
+neonctl branches create --name test --parent main
+```
+
+**Connection strings per environment:**
+
+```bash
+# apps/api/.env (local development)
+DATABASE_URL="postgresql://...@ep-dev-xxx.neon.tech/knowvault?sslmode=require&pgbouncer=true"
+DIRECT_DATABASE_URL="postgresql://...@ep-dev-xxx.neon.tech/knowvault?sslmode=require"
+REDIS_URL="redis://default:...@dev-xxx.upstash.io:6379"
+
+# CI environment (test branch)
+DATABASE_URL="postgresql://...@ep-test-xxx.neon.tech/..."
+
+# Production (Render env vars)
+DATABASE_URL="postgresql://...@ep-main-xxx.neon.tech/..."
+```
+
+**Schema migrations safety:**
+
+- Migrations run against `dev` branch first
+- If migration breaks `dev`, easy to recover by branching from `main`
+- Production migrations only after `dev` proves stable
+- See PRD Section "Database rules" for migration safety patterns
+
+**Trade-offs accepted:**
+
+- ❌ No offline development (requires internet)
+- ❌ Network latency vs local DB (acceptable for free-tier project)
+- ✅ Production parity
+- ✅ Simpler onboarding (no Docker setup for dev)
+- ✅ Built-in branching for data isolation
 
 ---
 
@@ -280,7 +355,13 @@ model Article {
   contentHash    String         // SHA-256 of content, detect content updates
   wordCount      Int
   readingTimeMin Int            // Estimated reading time
-  language       String         @default("en")
+
+  // Language handling (see Section 13 — Internationalization)
+  // MVP (Phase 1-7): Always "en", reject non-English articles gracefully
+  // Phase 8+: Auto-detected via AI/franc library
+  language          String         @default("en")
+  languageConfidence Float?        // Set in Phase 8+ when auto-detection added
+  languageDetectedBy String?        // "default" | "ai" | "library" | "user"
 
   // Processing status
   status         ArticleStatus  @default(PENDING)
@@ -865,6 +946,10 @@ Critical for the project's success. Build early.
 
 ### 8.1 Approach A — PostgreSQL Full-Text Search (Week 2-3)
 
+**MVP scope (Phase 1-7):** Hardcoded English FTS configuration. All articles assumed English (rejected at save time if not).
+
+**Phase 8+:** Will be made language-aware. Each article will use FTS config matching its detected language. Vietnamese will likely use `'simple'` config (PostgreSQL doesn't ship with great Vietnamese FTS support; this is a documented limitation, not a bug). See Section 13 for details.
+
 Implementation:
 ```sql
 -- Migration: Add full-text search support
@@ -872,6 +957,7 @@ ALTER TABLE "Article" ADD COLUMN search_vector tsvector;
 CREATE INDEX article_search_idx ON "Article" USING GIN(search_vector);
 
 -- Trigger to keep search_vector updated
+-- MVP: hardcoded 'english'. Phase 8+: parameterize by article.language
 CREATE FUNCTION article_search_update() RETURNS trigger AS $$
 BEGIN
   NEW.search_vector :=
@@ -885,6 +971,7 @@ $$ LANGUAGE plpgsql;
 Search query:
 ```typescript
 async searchArticles(query: string, userId: string) {
+  // MVP: 'english' hardcoded. Phase 8+: take language from request or user preference
   return this.prisma.$queryRaw`
     SELECT *, ts_rank(search_vector, to_tsquery('english', ${query})) as rank
     FROM "Article"
@@ -1203,8 +1290,8 @@ Quick reference for common decisions. Use when uncertain.
 - **Search results:** No cache (user-specific, real-time expectations).
 
 ### Error handling
-- **User-facing errors:** Catch in controller, return friendly message in Vietnamese.
-- **Internal errors:** Log full stack, return generic 500.
+- **User-facing errors:** Catch in controller, return structured `{ errorCode, context }` for UI to translate via next-intl. See Section 12 (i18n) for full pattern. NEVER return localized strings from backend.
+- **Internal errors:** Log full stack, return generic 500 with errorCode `INTERNAL_ERROR`.
 - **AI errors:** Wrap with `AIProcessingError`, retry up to 3 times.
 - **External service down:** Circuit breaker pattern (open after 5 consecutive failures).
 
@@ -1217,7 +1304,159 @@ Quick reference for common decisions. Use when uncertain.
 
 ---
 
-## 12. Phase Plan (timing approximate)
+## 12. Internationalization (i18n)
+
+This section was added in v1.1 to clarify language strategy after architectural review. It supersedes any conflicting guidance elsewhere in the PRD.
+
+### 12.1 Strategy summary
+
+**UI language:**
+- Library: **next-intl** (Next.js App Router native, type-safe, Server Component compatible)
+- Default locale: **English (`en`)**
+- MVP delivers English UI only
+- Vietnamese locale (`vi`) added in Phase 10 (Frontend Maturity) as polish work
+- All UI strings externalized from day one — NO hardcoded strings in components
+
+**Content language:**
+- MVP (Phase 1-7): **English-only article support**
+- Non-English articles rejected gracefully at save time with clear warning
+- Phase 8+: Multi-language with auto-detection
+- AI prompts assume English in MVP; localized prompts added in Phase 8+
+
+### 12.2 Why this strategy
+
+- **Portfolio-friendly:** English UI accessible to international recruiters/engineers
+- **Aligns with dev tool conventions:** GitHub, Linear, Notion all default to English
+- **Learning evidence:** i18n-ready architecture demonstrates real skill, not a "later" afterthought
+- **Phased complexity:** Single-language MVP is simpler; multi-language as a deliberate exploration phase adds learning value
+- **Honest scope:** No fake "10 languages supported" — just what's actually built
+
+### 12.3 MVP implementation (Phase 1 onward)
+
+**Setup:**
+- Install next-intl per official App Router guide
+- Configure locale routing: `/en/dashboard`, future `/vi/dashboard`
+- Create `messages/en.json` with all UI strings
+- Server Components fetch translations via `getTranslations()`
+- Client Components use `useTranslations()` hook
+
+**Conventions (enforced by CLAUDE.md):**
+- NEVER hardcode user-facing strings
+- All keys follow pattern: `<feature>.<element>.<variant>`, e.g., `articles.saveButton.label`, `auth.errors.invalidCredentials`
+- Keys defined in TypeScript declaration file for type safety
+- Pluralization via ICU MessageFormat: `{count, plural, =0 {No articles} =1 {1 article} other {# articles}}`
+
+**Article language handling (MVP):**
+```typescript
+async saveArticle(dto: SaveArticleDto, userId: string) {
+  // Quick language detection (cheap, local — using franc library)
+  const detectedLang = detectLanguage(dto.content); // returns ISO 639-1
+  
+  if (detectedLang !== 'en') {
+    throw new UnsupportedLanguageError(
+      `Article appears to be in ${detectedLang}. ` +
+      `Multi-language support is planned for Phase 8.`
+    );
+  }
+  
+  // Proceed with English-only pipeline
+  return this.repository.save(/* ... */);
+}
+```
+
+User sees friendly error: "Bài viết này không phải tiếng Anh. KnowVault hiện chỉ hỗ trợ tiếng Anh — đa ngôn ngữ sẽ được thêm trong Phase 8."
+
+### 12.4 Phase 8+ multi-language plan
+
+**Scope additions:**
+- Article language auto-detected and stored in `Article.language` field
+- AI prompts have language-specific versions (`extract-concepts.en.v1.ts`, `extract-concepts.vi.v1.ts`)
+- PostgreSQL FTS configuration dynamic per article (`'english'`, `'simple'` for Vietnamese)
+- Search results can span languages; UI shows article language badge
+- Concept extraction prompts include language directive: "Respond in same language as input"
+
+**Known limitations to document:**
+- Vietnamese FTS uses `'simple'` config (no stemming) — accepted trade-off
+- Cross-language concept matching is hard (Vietnamese "Bộ nhớ đệm" vs English "Cache") — Phase 8 explores embedding similarity for this
+- Mixed-language articles (code-switched VN/EN) handled best-effort
+
+### 12.5 i18n keys structure
+
+`apps/web/messages/en.json`:
+```json
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "loading": "Loading..."
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "submitButton": "Log in"
+    },
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "tooManyAttempts": "Too many attempts. Try again in {minutes} minutes."
+    }
+  },
+  "articles": {
+    "list": {
+      "empty": "No articles yet. Save your first article to get started!",
+      "count": "{count, plural, =0 {No articles} =1 {1 article} other {# articles}}"
+    },
+    "save": {
+      "success": "Article saved. Processing in background.",
+      "errors": {
+        "unsupportedLanguage": "Article appears to be in {language}. KnowVault currently supports English only — multi-language coming in Phase 8."
+      }
+    }
+  }
+}
+```
+
+### 12.6 Type safety
+
+Generate TypeScript types from `en.json` so that `t('articles.list.empty')` is type-checked. Misspelled keys → compile error, not runtime.
+
+```typescript
+// apps/web/src/types/i18n.d.ts (auto-generated)
+type Messages = typeof import('@/messages/en.json');
+declare interface IntlMessages extends Messages {}
+```
+
+### 12.7 Backend i18n
+
+NestJS backend largely doesn't need i18n in MVP because:
+- API responses use machine-readable error codes (not human strings)
+- UI translates error codes to localized messages
+- Logs are English-only (standard practice)
+
+Example pattern:
+```typescript
+// Backend returns:
+{ errorCode: 'ARTICLE_LANGUAGE_UNSUPPORTED', context: { language: 'vi' } }
+
+// Frontend translates:
+const t = useTranslations('articles.save.errors');
+t('unsupportedLanguage', { language: getLanguageName(errorCode.context.language) });
+```
+
+This separation keeps backend simple and pushes localization to where it belongs (UI layer).
+
+### 12.8 Phase Plan integration
+
+- **Phase 1:** Setup next-intl, externalize all strings, English `messages/en.json` complete
+- **Phase 2-7:** Continue adding English keys as features are built; reject non-English articles gracefully
+- **Phase 8:** Multi-language content support (article detection, localized AI prompts, multi-language FTS)
+- **Phase 10:** Vietnamese UI locale (`messages/vi.json`), locale switcher in UI, locale persistence per user
+
+---
+
+## 13. Phase Plan (timing approximate)
 
 Each phase has clear deliverables and Exploration touchpoints.
 
@@ -1332,7 +1571,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 
 ---
 
-## 13. Testing Strategy
+## 14. Testing Strategy
 
 Tests written from day one. No "no tests" phase.
 
@@ -1414,7 +1653,7 @@ describe('SM-2 algorithm', () => {
 
 ---
 
-## 14. Security Baseline (Phase 1 onward)
+## 15. Security Baseline (Phase 1 onward)
 
 Even before Exploration 6, these are non-negotiable from day one:
 
@@ -1433,7 +1672,7 @@ Even before Exploration 6, these are non-negotiable from day one:
 
 ---
 
-## 15. Environment Variables
+## 16. Environment Variables
 
 `apps/api/.env.example`:
 ```bash
@@ -1487,7 +1726,7 @@ API_BASE_URL=http://localhost:3001/api
 
 ---
 
-## 16. Definition of Done (per feature)
+## 17. Definition of Done (per feature)
 
 A feature is "done" when ALL of these hold:
 
@@ -1500,7 +1739,7 @@ A feature is "done" when ALL of these hold:
 7. **Authentication enforced** unless explicitly `@Public()`
 8. **userId from JWT** never from request body
 9. **Rate limit applied** if endpoint touches AI
-10. **Error handling:** User-friendly Vietnamese error messages
+10. **Error handling:** Backend returns structured `{ errorCode, context }`, frontend renders user-friendly English message via next-intl. NO hardcoded strings in components.
 11. **Logged appropriately:** Structured logs at INFO for business events, ERROR for failures
 12. **Documented:** If decision was made, ADR written
 13. **Frontend:** Loading states, error states, empty states
@@ -1509,7 +1748,7 @@ A feature is "done" when ALL of these hold:
 
 ---
 
-## 17. What this PRD does NOT cover
+## 18. What this PRD does NOT cover
 
 Intentionally out of scope for this document:
 
@@ -1521,7 +1760,7 @@ Intentionally out of scope for this document:
 
 ---
 
-## 18. Next Steps After PRD Approval
+## 19. Next Steps After PRD Approval
 
 1. **Create CLAUDE.md** adapted for this learning-driven project
 2. **Initialize repository** with monorepo structure

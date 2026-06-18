@@ -212,7 +212,9 @@ This separation makes the domain testable without spinning up databases, framewo
 
 - Node.js 20+ LTS
 - pnpm 9+
-- Docker (for local PostgreSQL and Redis)
+- Docker (for integration tests via testcontainers and production image builds)
+
+> **Note on local development:** KnowVault uses cloud databases (Neon + Upstash) for development, not local Docker containers. This matches production behavior and avoids "works on my machine" pitfalls. Docker is required only for integration tests and production image builds. See [ADR-0002 on local development strategy](./docs/adr/0002-local-development-strategy.md) for the full rationale.
 
 ### Installation
 
@@ -227,12 +229,9 @@ pnpm install
 # Setup environment variables
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.local.example apps/web/.env.local
-# Edit the .env files with your credentials
+# Edit the .env files with your Neon and Upstash credentials (see "Required external services" below)
 
-# Start PostgreSQL and Redis locally
-docker compose -f infra/docker/docker-compose.yml up -d
-
-# Run database migrations
+# Run database migrations against your Neon dev branch
 pnpm --filter @knowvault/api prisma:migrate dev
 
 # Seed the database with initial data
@@ -246,11 +245,38 @@ pnpm dev
 
 | Service | Purpose | Free tier sufficient? |
 |---------|---------|----------------------|
-| [Neon](https://neon.tech) | PostgreSQL database | Yes (0.5GB) |
+| [Neon](https://neon.tech) | PostgreSQL database (with branching) | Yes (0.5GB, unlimited branches) |
 | [Upstash](https://upstash.com) | Redis for BullMQ | Yes (10K commands/day) |
 | [Google AI Studio](https://aistudio.google.com) | Gemini API key | Yes (1500 req/day) |
 | [OpenAI](https://platform.openai.com) | Embedding API | ~$1-2/month for personal use |
 | [Cloudinary](https://cloudinary.com) | Image storage | Yes (25K images/month) |
+
+### Neon branches setup
+
+KnowVault uses Neon's branching feature for environment isolation:
+
+| Branch | Purpose | Used by |
+|--------|---------|---------|
+| `main` | Production data | Deployed app on Render |
+| `dev` | Active development | Local dev (`pnpm dev`) |
+| `test` | E2E and integration testing | CI pipeline |
+
+Create branches via Neon console or CLI:
+
+```bash
+# Install Neon CLI
+npm install -g neonctl
+
+# Create branches
+neonctl branches create --name dev --parent main
+neonctl branches create --name test --parent main
+
+# Get connection string for each branch
+neonctl connection-string dev
+neonctl connection-string test
+```
+
+Each branch has independent data — destructive operations in `dev` don't affect `main`.
 
 ### Development commands
 
@@ -378,9 +404,9 @@ This project would not exist without:
 
 **Đạt** — frontend developer at WeGrowth, transitioning to full-stack
 
-- GitHub: [@username](https://github.com/username)
-- LinkedIn: [profile](https://linkedin.com/in/username)
-- Email: contact@example.com
+- GitHub: [@username](https://github.com/datle04)
+- LinkedIn: [profile](https://www.linkedin.com/in/datle04/)
+- Email: ldat0909@gmail.com
 
 Building in public. Following the journey from junior to senior, one exploration at a time.
 
