@@ -7,6 +7,7 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
+    "prepare": "husky",
     "dev": "pnpm --parallel --filter='./apps/*' dev",
     "dev:web": "pnpm --filter @knowvault/web dev",
     "dev:api": "pnpm --filter @knowvault/api dev",
@@ -17,11 +18,17 @@
     "lint": "pnpm --recursive lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml}\" --ignore-path .gitignore"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js}": [
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml,css}": [
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "prettier": "^3.3.0",
     "typescript": "^5.5.0"
   }
