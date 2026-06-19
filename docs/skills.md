@@ -135,6 +135,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 **Related ADRs:**
 - `docs/adr/0010-indexing-strategy.md` ⏳ — Index decisions with EXPLAIN data
 - `docs/adr/0015-materialized-views.md` ⏳ — When to use materialized views
+- `docs/adr/0002-local-development-strategy.md` — Migration safety workflow (dev → test → main)
 
 ---
 
@@ -533,21 +534,46 @@ fc.assert(
 
 ---
 
-### Skill: Container & Local Development
+### Skill: Containerization & Deployment
 
-**Status:** ⏳ Phase 0
+**Status:** ⏳ Phase 0 (Dockerfile.api planned for Phase 12 — Polish)
 
 **Evidence locations:**
-- `infra/docker/docker-compose.yml` — Local PostgreSQL + Redis
-- `infra/docker/Dockerfile.api` ⏳ — Production API image
-- `apps/api/Dockerfile.dev` ⏳ — Development image
+- `infra/docker/Dockerfile.api` ⏳ — Multi-stage production image for Render deployment
+- `apps/api/test/setup/testcontainers.ts` ⏳ — Integration test container management
 
 **What to look for:**
-- Multi-stage Dockerfile for production
-- Layer caching optimization
-- Non-root user in production images
+- Multi-stage Dockerfile for production (build stage → runtime stage)
+- Layer caching optimization in production image
+- Non-root user in production images (security baseline)
 - Health check endpoints
-- Docker Compose for one-command local setup
+- Testcontainers setup for integration tests (PostgreSQL + Redis ephemeral containers)
+- Explicit absence of docker-compose.yml for dev databases (cloud-first per ADR-0002)
+
+**Related ADRs:**
+- `docs/adr/0002-local-development-strategy.md` — Why Docker is NOT used for local dev databases
+
+---
+
+### Skill: Database Branching Workflows (Neon)
+
+**Status:** ⏳ Phase 0 setup → 🟡 Partially evidenced after Phase 0 (ADR + setup done, ongoing throughout project)
+
+**Evidence locations:**
+- `docs/adr/0002-local-development-strategy.md` — Decision rationale for cloud-first dev
+- `apps/api/.env.example` ⏳ — Per-branch connection string patterns (DATABASE_URL vs DIRECT_DATABASE_URL)
+- `README.md` — Neon branch setup instructions (Getting Started section)
+- `.github/workflows/ci.yml` ⏳ — CI uses `test` branch connection strings
+
+**What to look for:**
+- Three-branch strategy: `main` (production), `dev` (local dev), `test` (CI)
+- Distinction between pooled URL (PgBouncer, runtime) vs direct URL (migrations only)
+- Migration safety workflow: run against `dev` first, validate, then `test`, then `main`
+- Never running untested migrations against production `main` branch
+- Neon branching as isolation mechanism (replacing Docker volume resets)
+
+**Related ADRs:**
+- `docs/adr/0002-local-development-strategy.md` — Full rationale and alternatives considered
 
 ---
 
@@ -686,5 +712,6 @@ If you find skills claimed without evidence, or evidence that doesn't actually d
 | Date | What changed |
 |------|-------------|
 | Project start | Initial document created |
+| 2026-06-18 | Renamed "Container & Local Development" → "Containerization & Deployment"; removed incorrect docker-compose.yml reference per ADR-0002 and PRD Section 3.3; added "Database Branching Workflows (Neon)" skill entry; added cross-reference from "Database Design & Optimization" to ADR-0002 |
 
 [Each phase completion will add an entry here documenting which skills moved from ⏳ to evidenced]

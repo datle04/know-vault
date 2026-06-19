@@ -59,6 +59,7 @@ You read an article about React Server Components.
 ## Tech stack
 
 **Frontend**
+
 - Next.js 14 (App Router) + TypeScript
 - TailwindCSS for styling
 - TanStack Query for server state
@@ -66,30 +67,35 @@ You read an article about React Server Components.
 - React Hook Form + Zod for forms
 
 **Backend**
+
 - NestJS 10 with module-based architecture
-- Prisma ORM with PostgreSQL
+- Prisma 6.x ORM with PostgreSQL
 - pgvector for semantic search
 - BullMQ + Redis for background processing
 - Custom JWT authentication
 
 **AI**
+
 - Google Gemini 2.0 Flash for generation
 - OpenAI `text-embedding-3-small` for embeddings
 - Versioned prompt templates
 - Custom evaluation framework for AI output quality
 
 **Browser Extension**
+
 - Manifest V3
 - Mozilla Readability for content extraction
 - Service Worker architecture
 
 **Infrastructure**
+
 - Vercel (frontend) + Render (backend) + Neon (database) + Upstash (Redis)
 - All on free tiers — total cost: $0/month
 - GitHub Actions for CI/CD
 - Sentry for error tracking
 
 **Testing**
+
 - Jest for backend unit tests
 - Vitest for frontend tests
 - Playwright for E2E
@@ -114,17 +120,18 @@ Most portfolio projects show you can build something that works. This one is str
 
 For seven major problem areas, I implement multiple approaches and document the comparisons:
 
-| Problem area | Approaches explored |
-|--------------|---------------------|
-| Search | PostgreSQL FTS → Vector search → Hybrid + reranking |
-| Background processing | Synchronous → Fire-and-forget → BullMQ patterns |
-| AI cost optimization | Baseline → Content dedup → Layered caching |
-| Data layer | Direct Prisma → Repository pattern → Query optimization |
-| Frontend state | Local state → Server/client split → Design system |
-| Security | Default secure → Threat modeling → Active validation |
-| Observability | Triggered by genuine need, not premature |
+| Problem area          | Approaches explored                                     |
+| --------------------- | ------------------------------------------------------- |
+| Search                | PostgreSQL FTS → Vector search → Hybrid + reranking     |
+| Background processing | Synchronous → Fire-and-forget → BullMQ patterns         |
+| AI cost optimization  | Baseline → Content dedup → Layered caching              |
+| Data layer            | Direct Prisma → Repository pattern → Query optimization |
+| Frontend state        | Local state → Server/client split → Design system       |
+| Security              | Default secure → Threat modeling → Active validation    |
+| Observability         | Triggered by genuine need, not premature                |
 
 Each exploration produces:
+
 - Working code for each approach
 - Performance/cost benchmarks where measurable
 - An [Architecture Decision Record](./docs/adr/) explaining the trade-offs
@@ -140,11 +147,11 @@ This isn't "bad code then good code." Each approach is valid for some context. T
 
 The project has three primary documents, designed to be read together:
 
-| Document | Purpose | When to read |
-|----------|---------|--------------|
-| [VISION.md](./VISION.md) | Product intent, problem definition, success criteria | First — understand the WHY |
-| [PRD.md](./PRD.md) | Technical specifications, architecture, phase plan | Second — understand the WHAT |
-| [CLAUDE.md](./CLAUDE.md) | Working conventions and patterns | Third — understand the HOW |
+| Document                 | Purpose                                              | When to read                 |
+| ------------------------ | ---------------------------------------------------- | ---------------------------- |
+| [VISION.md](./VISION.md) | Product intent, problem definition, success criteria | First — understand the WHY   |
+| [PRD.md](./PRD.md)       | Technical specifications, architecture, phase plan   | Second — understand the WHAT |
+| [CLAUDE.md](./CLAUDE.md) | Working conventions and patterns                     | Third — understand the HOW   |
 
 ### Supporting documentation
 
@@ -212,7 +219,9 @@ This separation makes the domain testable without spinning up databases, framewo
 
 - Node.js 20+ LTS
 - pnpm 9+
-- Docker (for local PostgreSQL and Redis)
+- Docker (for integration tests via testcontainers and production image builds)
+
+> **Note on local development:** KnowVault uses cloud databases (Neon + Upstash) for development, not local Docker containers. This matches production behavior and avoids "works on my machine" pitfalls. Docker is required only for integration tests and production image builds. See [ADR-0002 on local development strategy](./docs/adr/0002-local-development-strategy.md) for the full rationale.
 
 ### Installation
 
@@ -227,12 +236,9 @@ pnpm install
 # Setup environment variables
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.local.example apps/web/.env.local
-# Edit the .env files with your credentials
+# Edit the .env files with your Neon and Upstash credentials (see "Required external services" below)
 
-# Start PostgreSQL and Redis locally
-docker compose -f infra/docker/docker-compose.yml up -d
-
-# Run database migrations
+# Run database migrations against your Neon dev branch
 pnpm --filter @knowvault/api prisma:migrate dev
 
 # Seed the database with initial data
@@ -244,13 +250,40 @@ pnpm dev
 
 ### Required external services
 
-| Service | Purpose | Free tier sufficient? |
-|---------|---------|----------------------|
-| [Neon](https://neon.tech) | PostgreSQL database | Yes (0.5GB) |
-| [Upstash](https://upstash.com) | Redis for BullMQ | Yes (10K commands/day) |
-| [Google AI Studio](https://aistudio.google.com) | Gemini API key | Yes (1500 req/day) |
-| [OpenAI](https://platform.openai.com) | Embedding API | ~$1-2/month for personal use |
-| [Cloudinary](https://cloudinary.com) | Image storage | Yes (25K images/month) |
+| Service                                         | Purpose                              | Free tier sufficient?           |
+| ----------------------------------------------- | ------------------------------------ | ------------------------------- |
+| [Neon](https://neon.tech)                       | PostgreSQL database (with branching) | Yes (0.5GB, unlimited branches) |
+| [Upstash](https://upstash.com)                  | Redis for BullMQ                     | Yes (10K commands/day)          |
+| [Google AI Studio](https://aistudio.google.com) | Gemini API key                       | Yes (1500 req/day)              |
+| [OpenAI](https://platform.openai.com)           | Embedding API                        | ~$1-2/month for personal use    |
+| [Cloudinary](https://cloudinary.com)            | Image storage                        | Yes (25K images/month)          |
+
+### Neon branches setup
+
+KnowVault uses Neon's branching feature for environment isolation:
+
+| Branch | Purpose                     | Used by                |
+| ------ | --------------------------- | ---------------------- |
+| `main` | Production data             | Deployed app on Render |
+| `dev`  | Active development          | Local dev (`pnpm dev`) |
+| `test` | E2E and integration testing | CI pipeline            |
+
+Create branches via Neon console or CLI:
+
+```bash
+# Install Neon CLI
+npm install -g neonctl
+
+# Create branches
+neonctl branches create --name dev --parent main
+neonctl branches create --name test --parent main
+
+# Get connection string for each branch
+neonctl connection-string dev
+neonctl connection-string test
+```
+
+Each branch has independent data — destructive operations in `dev` don't affect `main`.
 
 ### Development commands
 
@@ -283,21 +316,21 @@ pnpm db:seed        # Seed development data
 
 ## Project status
 
-| Phase | Status | Highlights |
-|-------|--------|-----------|
-| 0 — Project Setup | ⏳ Not started | Monorepo, CI/CD skeleton, tooling |
-| 1 — Foundation | ⏳ Pending | Auth, basic article CRUD, PostgreSQL FTS search |
-| 2 — AI Pipeline | ⏳ Pending | Concept extraction, question generation, BullMQ |
-| 3 — Browser Extension | ⏳ Pending | One-click save flow |
-| 4 — Review System | ⏳ Pending | SM-2 algorithm, daily reviews |
-| 5 — Notes & Highlights | ⏳ Pending | Annotation features |
-| 6 — Search Evolution | ⏳ Pending | Vector + hybrid search |
-| 7 — Background Processing Maturity | ⏳ Pending | Production-grade queues |
-| 8 — AI Cost Optimization | ⏳ Pending | Caching, deduplication |
-| 9 — Data Layer Optimization | ⏳ Pending | EXPLAIN ANALYZE profiling |
-| 10 — Frontend Maturity | ⏳ Pending | Design system, Storybook |
-| 11 — Security Hardening | ⏳ Pending | OWASP audit, pen-testing |
-| 12 — Polish & Portfolio | ⏳ Pending | Demo prep, retrospective |
+| Phase                              | Status         | Highlights                                      |
+| ---------------------------------- | -------------- | ----------------------------------------------- |
+| 0 — Project Setup                  | ⏳ Not started | Monorepo, CI/CD skeleton, tooling               |
+| 1 — Foundation                     | ⏳ Pending     | Auth, basic article CRUD, PostgreSQL FTS search |
+| 2 — AI Pipeline                    | ⏳ Pending     | Concept extraction, question generation, BullMQ |
+| 3 — Browser Extension              | ⏳ Pending     | One-click save flow                             |
+| 4 — Review System                  | ⏳ Pending     | SM-2 algorithm, daily reviews                   |
+| 5 — Notes & Highlights             | ⏳ Pending     | Annotation features                             |
+| 6 — Search Evolution               | ⏳ Pending     | Vector + hybrid search                          |
+| 7 — Background Processing Maturity | ⏳ Pending     | Production-grade queues                         |
+| 8 — AI Cost Optimization           | ⏳ Pending     | Caching, deduplication                          |
+| 9 — Data Layer Optimization        | ⏳ Pending     | EXPLAIN ANALYZE profiling                       |
+| 10 — Frontend Maturity             | ⏳ Pending     | Design system, Storybook                        |
+| 11 — Security Hardening            | ⏳ Pending     | OWASP audit, pen-testing                        |
+| 12 — Polish & Portfolio            | ⏳ Pending     | Demo prep, retrospective                        |
 
 [See detailed phase plan →](./PRD.md#12-phase-plan-timing-approximate)
 
@@ -308,26 +341,31 @@ pnpm db:seed        # Seed development data
 If you're a recruiter or fellow engineer evaluating this code, here's what to look at:
 
 **For testing depth:**
+
 - [`apps/api/src/domain/review/sm2.service.spec.ts`](./apps/api/src/domain/review/) — property-based tests on SM-2
 - [`apps/api/test/`](./apps/api/test/) — integration tests with testcontainers
 - [`apps/web/src/components/`](./apps/web/src/components/) — component tests
 
 **For architecture:**
+
 - [`apps/api/src/domain/`](./apps/api/src/domain/) — pure domain layer with DDD patterns
 - [`apps/api/src/infrastructure/`](./apps/api/src/infrastructure/) — clean separation of concerns
 - [`docs/adr/`](./docs/adr/) — every significant decision documented
 
 **For AI/RAG engineering:**
+
 - [`apps/api/src/modules/ai/`](./apps/api/src/modules/ai/) — provider abstraction, prompt templates
 - [`apps/api/src/modules/ai/prompt-templates/`](./apps/api/src/modules/ai/prompt-templates/) — versioned prompts
 - [`docs/explorations/01-search.md`](./docs/explorations/) — search architecture comparison
 
 **For security:**
+
 - [`docs/security/`](./docs/security/) — threat models and audits
 - [`apps/api/src/common/guards/`](./apps/api/src/common/guards/) — auth implementation
 - [`.github/workflows/security.yml`](./.github/workflows/) — automated security scans
 
 **For evidence of specific skills:**
+
 - See [`docs/skills.md`](./docs/skills.md) for a mapping of each claimed skill to specific code evidence.
 
 ---
@@ -378,8 +416,8 @@ This project would not exist without:
 
 **Đạt** — frontend developer at WeGrowth, transitioning to full-stack
 
-- GitHub: [@username](https://github.com/username)
-- LinkedIn: [profile](https://linkedin.com/in/username)
+- GitHub: [@username](https://github.com/datle04)
+- LinkedIn: [profile](https://linkedin.com/in/datle04)
 - Email: contact@example.com
 
 Building in public. Following the journey from junior to senior, one exploration at a time.

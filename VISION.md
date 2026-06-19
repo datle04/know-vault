@@ -395,6 +395,8 @@ If triggered, will explore: structured logging (Pino), distributed tracing (Open
 - **NOT a Twitter/Reddit replacement.** We import from them.
 - **NOT a comprehensive learning platform.** No courses or curriculum.
 - **NOT trying to scale.** Built for me + a handful of friends.
+- **NOT multi-language at MVP.** English UI only in MVP (Vietnamese added Phase 10). English-only articles in Phase 1-7 (multi-language content in Phase 8+). i18n architecture in place from day one — see Technical PRD Section 12 for strategy.
+- **NOT a translation tool.** We don't auto-translate articles between languages. We process articles in their original language.
 
 ---
 
@@ -486,3 +488,19 @@ Based on v2 feedback:
 6. **External users remain bonus, not requirement**
 
 ---
+
+## 13. Ready for Technical PRD?
+
+This Product Vision is stable enough to proceed unless you spot issues.
+
+**Final questions before I write Technical PRD:**
+
+1. Are 7 Explorations the right number? Too many, too few, just right?
+2. Is the Exploration 7 (Observability) trigger condition reasonable, or should it be removed entirely?
+3. Anything else missing or worth challenging?
+
+The Technical PRD will define:
+- Architecture aligned with Exploration approach (initial implementation = Approach A, with planned alternatives)
+- Phase-by-phase build plan with explicit Exploration phases
+- Data model, API design, tech stack with rationale
+- CLAUDE.md adapted for this learning-driven project

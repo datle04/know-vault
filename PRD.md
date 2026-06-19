@@ -35,36 +35,37 @@ The Technical PRD constrains HOW we build. Product Vision constrains WHY and WHA
 
 ## 2. Stack (final, confirmed)
 
-| Layer | Choice | Rationale |
-|-------|--------|-----------|
-| **Frontend** | Next.js 14 (App Router) + TailwindCSS | Modern, SSR, ecosystem |
-| **State (server)** | TanStack Query v5 | Cache, retry, optimistic updates |
-| **State (client)** | Zustand | Minimal, no boilerplate |
-| **Forms** | React Hook Form + Zod | Type-safe, performant |
-| **Backend** | NestJS 10+ | Module-based, DDD-friendly, DI |
-| **API style** | REST (not tRPC, not GraphQL) | Explicit contract, easier to test independently |
-| **ORM** | Prisma | Type-safe, migration management |
-| **Database** | PostgreSQL 15+ (Neon) | ACID, pgvector support, free tier |
-| **Vector store** | pgvector extension | Native PostgreSQL, no separate service |
-| **Queue** | BullMQ | Redis-backed, proven, NestJS integration |
-| **Redis** | Upstash | Free tier, REST-based, serverless |
-| **AI Generation** | Google Gemini 2.0 Flash | 1500 free req/day, multimodal |
-| **AI Embeddings** | OpenAI text-embedding-3-small | $0.02/1M tokens, proven quality |
-| **Auth** | Custom JWT (NestJS) | Demonstrates auth skills, no vendor lock |
-| **File storage** | Cloudinary | Free tier, CDN, image transforms |
-| **Browser Extension** | Manifest V3 + vanilla JS/TS | Modern, future-proof |
-| **Web hosting** | Vercel | Free tier, optimized for Next.js |
-| **API hosting** | Render | Free tier 750h/month |
-| **CI/CD** | GitHub Actions | Free for public repos |
-| **Error tracking** | Sentry | Free tier (5K errors/month) |
-| **Testing** | Jest (unit), Vitest (frontend), Playwright (E2E) | Industry standard |
-| **Package manager** | pnpm + workspaces | Disk efficiency, monorepo support |
-| **Linting** | ESLint + Prettier | Code quality |
-| **Type safety** | TypeScript 5.3+ strict mode | Non-negotiable |
+| Layer                 | Choice                                           | Rationale                                                  |
+| --------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
+| **Frontend**          | Next.js 14 (App Router) + TailwindCSS            | Modern, SSR, ecosystem                                     |
+| **State (server)**    | TanStack Query v5                                | Cache, retry, optimistic updates                           |
+| **State (client)**    | Zustand                                          | Minimal, no boilerplate                                    |
+| **Forms**             | React Hook Form + Zod                            | Type-safe, performant                                      |
+| **Backend**           | NestJS 10+                                       | Module-based, DDD-friendly, DI                             |
+| **API style**         | REST (not tRPC, not GraphQL)                     | Explicit contract, easier to test independently            |
+| **ORM**               | Prisma 6.x (latest stable)                       | Type-safe, migration management; pgvector support verified |
+| **Database**          | PostgreSQL 15+ (Neon)                            | ACID, pgvector support, free tier                          |
+| **Vector store**      | pgvector extension                               | Native PostgreSQL, no separate service                     |
+| **Queue**             | BullMQ                                           | Redis-backed, proven, NestJS integration                   |
+| **Redis**             | Upstash                                          | Free tier, REST-based, serverless                          |
+| **AI Generation**     | Google Gemini 2.0 Flash                          | 1500 free req/day, multimodal                              |
+| **AI Embeddings**     | OpenAI text-embedding-3-small                    | $0.02/1M tokens, proven quality                            |
+| **Auth**              | Custom JWT (NestJS)                              | Demonstrates auth skills, no vendor lock                   |
+| **File storage**      | Cloudinary                                       | Free tier, CDN, image transforms                           |
+| **Browser Extension** | Manifest V3 + vanilla JS/TS                      | Modern, future-proof                                       |
+| **Web hosting**       | Vercel                                           | Free tier, optimized for Next.js                           |
+| **API hosting**       | Render                                           | Free tier 750h/month                                       |
+| **CI/CD**             | GitHub Actions                                   | Free for public repos                                      |
+| **Error tracking**    | Sentry                                           | Free tier (5K errors/month)                                |
+| **Testing**           | Jest (unit), Vitest (frontend), Playwright (E2E) | Industry standard                                          |
+| **Package manager**   | pnpm + workspaces                                | Disk efficiency, monorepo support                          |
+| **Linting**           | ESLint + Prettier                                | Code quality                                               |
+| **Type safety**       | TypeScript 5.3+ strict mode                      | Non-negotiable                                             |
 
 ### Stack decisions NOT to re-litigate
 
 Once you start building, do not propose changing:
+
 - Database from PostgreSQL to MongoDB ("NoSQL is simpler") — pgvector requires PostgreSQL
 - ORM from Prisma to Drizzle/TypeORM — Prisma is proven and matches learning goals
 - Gemini to Claude/OpenAI for generation — Gemini free tier covers MVP needs
@@ -132,7 +133,7 @@ knowvault/
 ├── .github/
 │   └── workflows/                # CI/CD pipelines
 ├── infra/
-│   └── docker/                   # Dockerfile cho local dev
+│   └── docker/                   # Dockerfile for production builds, NOT local dev databases
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── README.md
@@ -143,6 +144,7 @@ knowvault/
 ### Workspace configuration
 
 `pnpm-workspace.yaml`:
+
 ```yaml
 packages:
   - 'apps/*'
@@ -150,6 +152,7 @@ packages:
 ```
 
 Root `package.json` scripts:
+
 ```json
 {
   "scripts": {
@@ -164,6 +167,84 @@ Root `package.json` scripts:
   }
 }
 ```
+
+### 3.3 Local Development Strategy (Hybrid: Cloud + Docker)
+
+KnowVault uses a **hybrid local development model**: cloud databases for dev work, Docker for tests and production builds. This is documented in ADR-0002.
+
+**Cloud-based local dev (primary):**
+
+Local `pnpm dev` connects to cloud services, NOT local Docker containers:
+
+- PostgreSQL: Neon `dev` branch (`DATABASE_URL` in `.env`)
+- Redis: Upstash dev instance (`REDIS_URL` in `.env`)
+- AI services: same Gemini + OpenAI keys as production
+
+**Why cloud for local dev:**
+
+- Match production behavior (PgBouncer pooling, network latency, pgvector version)
+- No "works on my machine" pitfalls from version mismatches
+- Onboard friends with just env vars, no Docker required for them
+- Neon branching gives data isolation without Docker volumes complexity
+- Eliminates 1 entire category of bugs (local vs prod database differences)
+
+**Docker is still required, but ONLY for:**
+
+1. **Integration tests** via testcontainers:
+   - `apps/api/test/integration/*.spec.ts` uses ephemeral PostgreSQL + Redis containers
+   - Each test suite spins up containers, runs, tears down
+   - Ensures tests don't pollute dev databases
+
+2. **Production image builds:**
+   - `infra/docker/Dockerfile.api` for Render deployment
+   - Multi-stage build for optimized production image
+
+3. **NOT for routine `pnpm dev`** — that connects to Neon and Upstash directly
+
+**Neon branch strategy:**
+
+| Branch | Purpose            | Used by                | Reset frequency           |
+| ------ | ------------------ | ---------------------- | ------------------------- |
+| `main` | Production data    | Deployed app on Render | Never (production data)   |
+| `dev`  | Active development | Local dev (`pnpm dev`) | Periodically as needed    |
+| `test` | E2E tests          | CI pipeline            | Reset before each E2E run |
+
+Branch creation in Phase 0 setup:
+
+```bash
+neonctl branches create --name dev --parent main
+neonctl branches create --name test --parent main
+```
+
+**Connection strings per environment:**
+
+```bash
+# apps/api/.env (local development)
+DATABASE_URL="postgresql://...@ep-dev-xxx.neon.tech/knowvault?sslmode=require&pgbouncer=true"
+DIRECT_DATABASE_URL="postgresql://...@ep-dev-xxx.neon.tech/knowvault?sslmode=require"
+REDIS_URL="redis://default:...@dev-xxx.upstash.io:6379"
+
+# CI environment (test branch)
+DATABASE_URL="postgresql://...@ep-test-xxx.neon.tech/..."
+
+# Production (Render env vars)
+DATABASE_URL="postgresql://...@ep-main-xxx.neon.tech/..."
+```
+
+**Schema migrations safety:**
+
+- Migrations run against `dev` branch first
+- If migration breaks `dev`, easy to recover by branching from `main`
+- Production migrations only after `dev` proves stable
+- See PRD Section "Database rules" for migration safety patterns
+
+**Trade-offs accepted:**
+
+- ❌ No offline development (requires internet)
+- ❌ Network latency vs local DB (acceptable for free-tier project)
+- ✅ Production parity
+- ✅ Simpler onboarding (no Docker setup for dev)
+- ✅ Built-in branching for data isolation
 
 ---
 
@@ -210,6 +291,8 @@ Review (spaced repetition state)
 ```
 
 ### 4.2 Prisma Schema
+
+> **Note:** Schema below targets Prisma 6.x. The `postgresqlExtensions` preview feature enables pgvector integration. Prisma 6 schema syntax is compatible with this format. When upgrading to Prisma 7 (see Section 12 future exploration), datasource config will move to `prisma.config.ts`.
 
 ```prisma
 generator client {
@@ -280,7 +363,13 @@ model Article {
   contentHash    String         // SHA-256 of content, detect content updates
   wordCount      Int
   readingTimeMin Int            // Estimated reading time
-  language       String         @default("en")
+
+  // Language handling (see Section 13 — Internationalization)
+  // MVP (Phase 1-7): Always "en", reject non-English articles gracefully
+  // Phase 8+: Auto-detected via AI/franc library
+  language          String         @default("en")
+  languageConfidence Float?        // Set in Phase 8+ when auto-detection added
+  languageDetectedBy String?        // "default" | "ai" | "library" | "user"
 
   // Processing status
   status         ArticleStatus  @default(PENDING)
@@ -642,6 +731,7 @@ apps/api/src/
 All endpoints prefixed `/api`. JWT authentication required except `@Public()`.
 
 ### 6.1 Authentication
+
 ```
 POST   /api/auth/register         { email, password, name } → { user, accessToken }
 POST   /api/auth/login            { email, password } → { user, accessToken }
@@ -650,6 +740,7 @@ POST   /api/auth/logout           (cookie) → { success }
 ```
 
 ### 6.2 Articles
+
 ```
 GET    /api/articles                          ?status=&page=&limit=  → paginated
 POST   /api/articles                          { url, content? }       → Article (sync save, async process)
@@ -661,6 +752,7 @@ POST   /api/articles/:id/reprocess            → { jobId }            (re-run A
 ```
 
 ### 6.3 Concepts
+
 ```
 GET    /api/concepts                          ?search=               → Concept[]
 GET    /api/concepts/:id                      → Concept with relationships
@@ -675,6 +767,7 @@ GET    /api/concepts/graph                    → Full graph data for visualizat
 ```
 
 ### 6.4 Questions & Reviews
+
 ```
 GET    /api/reviews/queue                     → Question[] due for review today
 POST   /api/reviews/:questionId/attempt       { userAnswer } → { evaluation, nextReview }
@@ -684,6 +777,7 @@ DELETE /api/questions/:id                     → { success }
 ```
 
 ### 6.5 Notes
+
 ```
 GET    /api/notes                             ?conceptId=&articleId= → Note[]
 POST   /api/notes                             { content, articleId?, highlightId?, conceptIds? } → Note
@@ -693,18 +787,21 @@ DELETE /api/notes/:id                         → { success }
 ```
 
 ### 6.6 Highlights
+
 ```
 POST   /api/articles/:id/highlights           { startPos, endPos, text, color? } → Highlight
 DELETE /api/highlights/:id                    → { success }
 ```
 
 ### 6.7 Search
+
 ```
 GET    /api/search                            ?q=&type=&limit=        → SearchResult[]
   type: 'all' | 'articles' | 'notes' | 'concepts'
 ```
 
 ### 6.8 Analytics
+
 ```
 GET    /api/analytics/dashboard               → DashboardData
 GET    /api/analytics/retention               ?period= → RetentionMetrics
@@ -712,6 +809,7 @@ GET    /api/analytics/costs                   → AICostBreakdown
 ```
 
 ### 6.9 Extension-specific
+
 ```
 POST   /api/extension/quick-save              { url, html?, selection? } → Article
 GET    /api/extension/status                  → { saved, count } for current URL
@@ -800,6 +898,7 @@ export interface GenerationResult {
 ```
 
 Implementations:
+
 - `GeminiProvider` (generation)
 - `OpenAIProvider` (embeddings)
 
@@ -819,6 +918,7 @@ apps/api/src/modules/ai/prompt-templates/
 ```
 
 Each template exports:
+
 ```typescript
 export const extractConceptsV1: PromptTemplate = {
   version: 'v1',
@@ -840,6 +940,7 @@ This enables prompt versioning, A/B testing, and the AI quality evaluation frame
 Critical for the project's success. Build early.
 
 **Manual evaluation flow:**
+
 ```
 1. User reviews generated content (concepts, questions)
 2. User rates each item: useful / partially / not useful
@@ -849,6 +950,7 @@ Critical for the project's success. Build early.
 ```
 
 **Automated evaluation (later):**
+
 ```
 - Test set of 50 articles with manually-labeled "ideal" outputs
 - Run each prompt version against test set
@@ -865,13 +967,19 @@ Critical for the project's success. Build early.
 
 ### 8.1 Approach A — PostgreSQL Full-Text Search (Week 2-3)
 
+**MVP scope (Phase 1-7):** Hardcoded English FTS configuration. All articles assumed English (rejected at save time if not).
+
+**Phase 8+:** Will be made language-aware. Each article will use FTS config matching its detected language. Vietnamese will likely use `'simple'` config (PostgreSQL doesn't ship with great Vietnamese FTS support; this is a documented limitation, not a bug). See Section 13 for details.
+
 Implementation:
+
 ```sql
 -- Migration: Add full-text search support
 ALTER TABLE "Article" ADD COLUMN search_vector tsvector;
 CREATE INDEX article_search_idx ON "Article" USING GIN(search_vector);
 
 -- Trigger to keep search_vector updated
+-- MVP: hardcoded 'english'. Phase 8+: parameterize by article.language
 CREATE FUNCTION article_search_update() RETURNS trigger AS $$
 BEGIN
   NEW.search_vector :=
@@ -883,8 +991,10 @@ $$ LANGUAGE plpgsql;
 ```
 
 Search query:
+
 ```typescript
 async searchArticles(query: string, userId: string) {
+  // MVP: 'english' hardcoded. Phase 8+: take language from request or user preference
   return this.prisma.$queryRaw`
     SELECT *, ts_rank(search_vector, to_tsquery('english', ${query})) as rank
     FROM "Article"
@@ -897,6 +1007,7 @@ async searchArticles(query: string, userId: string) {
 ```
 
 **Benchmark this approach:**
+
 - Query latency for various query types (single word, phrase, boolean)
 - Recall on test queries (am I finding the right articles?)
 - Limitations: synonyms ("cache" vs "caching"), conceptual queries
@@ -904,6 +1015,7 @@ async searchArticles(query: string, userId: string) {
 ### 8.2 Approach B — Vector Search with pgvector (Week 5-6)
 
 Implementation:
+
 ```typescript
 async semanticSearchArticles(query: string, userId: string) {
   // 1. Embed the query
@@ -927,6 +1039,7 @@ async semanticSearchArticles(query: string, userId: string) {
 ### 8.3 Approach C — Hybrid Search with Reranking (Week 7-8)
 
 Implementation:
+
 ```typescript
 async hybridSearch(query: string, userId: string) {
   // 1. Run both searches in parallel
@@ -983,6 +1096,7 @@ async saveArticle(@Body() dto: SaveArticleDto, @CurrentUser() user: User) {
 ```
 
 Document:
+
 - HTTP timeout issues
 - Bad UX (long loading state)
 - Cannot scale beyond 1 concurrent processing
@@ -1004,6 +1118,7 @@ async saveArticle(@Body() dto: SaveArticleDto, @CurrentUser() user: User) {
 ```
 
 Document:
+
 - Work lost on server restart
 - No retry on failure
 - No visibility into job state
@@ -1031,6 +1146,7 @@ async saveArticle(@Body() dto: SaveArticleDto, @CurrentUser() user: User) {
 ```
 
 Queue worker:
+
 ```typescript
 @Processor('article-processing')
 export class ArticleProcessor extends WorkerHost {
@@ -1054,6 +1170,7 @@ export class ArticleProcessor extends WorkerHost {
 ```
 
 **Document:**
+
 - Reliability: jobs survive restart
 - Observability: BullMQ UI shows job state
 - Concurrency control: configure workers per CPU
@@ -1096,14 +1213,8 @@ apps/extension/src/
   "name": "KnowVault",
   "version": "0.1.0",
   "description": "Save and learn from technical articles",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "contextMenus"
-  ],
-  "host_permissions": [
-    "https://*.knowvault.app/*"
-  ],
+  "permissions": ["storage", "activeTab", "contextMenus"],
+  "host_permissions": ["https://*.knowvault.app/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -1112,11 +1223,13 @@ apps/extension/src/
     "default_popup": "popup.html",
     "default_icon": "icons/icon-32.png"
   },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["content.js"],
-    "run_at": "document_idle"
-  }],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -1186,29 +1299,34 @@ function extractArticle(): ExtractedArticle | null {
 Quick reference for common decisions. Use when uncertain.
 
 ### Architecture decisions
+
 - **Sync API operations:** Auth, user CRUD, simple reads. p95 < 500ms.
 - **Async via queue:** Anything involving AI calls, embeddings, scraping. Return job ID, poll for status.
 - **Streaming:** AI chat responses (later feature). Use Server-Sent Events.
 
 ### Data access
+
 - **Read-heavy queries:** Direct Prisma in service.
 - **Complex domain logic:** Repository pattern with interface in domain layer.
 - **Multi-step transactions:** Use Prisma `$transaction`.
 - **Aggregations:** Try Prisma `groupBy` first; raw SQL if needed; materialized view if frequently queried.
 
 ### Caching
+
 - **AI responses:** Hash input + prompt version → cache for 24 hours.
 - **Embeddings:** Permanent cache (embeddings don't change).
 - **User preferences:** In-memory cache with TTL 5 minutes.
 - **Search results:** No cache (user-specific, real-time expectations).
 
 ### Error handling
-- **User-facing errors:** Catch in controller, return friendly message in Vietnamese.
-- **Internal errors:** Log full stack, return generic 500.
+
+- **User-facing errors:** Catch in controller, return structured `{ errorCode, context }` for UI to translate via next-intl. See Section 12 (i18n) for full pattern. NEVER return localized strings from backend.
+- **Internal errors:** Log full stack, return generic 500 with errorCode `INTERNAL_ERROR`.
 - **AI errors:** Wrap with `AIProcessingError`, retry up to 3 times.
 - **External service down:** Circuit breaker pattern (open after 5 consecutive failures).
 
 ### Testing depth
+
 - **Domain entities:** 95%+ coverage with edge cases.
 - **Services with logic:** Unit tests for branches.
 - **Controllers:** Integration tests (request → response).
@@ -1217,11 +1335,174 @@ Quick reference for common decisions. Use when uncertain.
 
 ---
 
-## 12. Phase Plan (timing approximate)
+## 12. Internationalization (i18n)
+
+This section was added in v1.1 to clarify language strategy after architectural review. It supersedes any conflicting guidance elsewhere in the PRD.
+
+### 12.1 Strategy summary
+
+**UI language:**
+
+- Library: **next-intl** (Next.js App Router native, type-safe, Server Component compatible)
+- Default locale: **English (`en`)**
+- MVP delivers English UI only
+- Vietnamese locale (`vi`) added in Phase 10 (Frontend Maturity) as polish work
+- All UI strings externalized from day one — NO hardcoded strings in components
+
+**Content language:**
+
+- MVP (Phase 1-7): **English-only article support**
+- Non-English articles rejected gracefully at save time with clear warning
+- Phase 8+: Multi-language with auto-detection
+- AI prompts assume English in MVP; localized prompts added in Phase 8+
+
+### 12.2 Why this strategy
+
+- **Portfolio-friendly:** English UI accessible to international recruiters/engineers
+- **Aligns with dev tool conventions:** GitHub, Linear, Notion all default to English
+- **Learning evidence:** i18n-ready architecture demonstrates real skill, not a "later" afterthought
+- **Phased complexity:** Single-language MVP is simpler; multi-language as a deliberate exploration phase adds learning value
+- **Honest scope:** No fake "10 languages supported" — just what's actually built
+
+### 12.3 MVP implementation (Phase 1 onward)
+
+**Setup:**
+
+- Install next-intl per official App Router guide
+- Configure locale routing: `/en/dashboard`, future `/vi/dashboard`
+- Create `messages/en.json` with all UI strings
+- Server Components fetch translations via `getTranslations()`
+- Client Components use `useTranslations()` hook
+
+**Conventions (enforced by CLAUDE.md):**
+
+- NEVER hardcode user-facing strings
+- All keys follow pattern: `<feature>.<element>.<variant>`, e.g., `articles.saveButton.label`, `auth.errors.invalidCredentials`
+- Keys defined in TypeScript declaration file for type safety
+- Pluralization via ICU MessageFormat: `{count, plural, =0 {No articles} =1 {1 article} other {# articles}}`
+
+**Article language handling (MVP):**
+
+```typescript
+async saveArticle(dto: SaveArticleDto, userId: string) {
+  // Quick language detection (cheap, local — using franc library)
+  const detectedLang = detectLanguage(dto.content); // returns ISO 639-1
+
+  if (detectedLang !== 'en') {
+    throw new UnsupportedLanguageError(
+      `Article appears to be in ${detectedLang}. ` +
+      `Multi-language support is planned for Phase 8.`
+    );
+  }
+
+  // Proceed with English-only pipeline
+  return this.repository.save(/* ... */);
+}
+```
+
+User sees friendly error: "Bài viết này không phải tiếng Anh. KnowVault hiện chỉ hỗ trợ tiếng Anh — đa ngôn ngữ sẽ được thêm trong Phase 8."
+
+### 12.4 Phase 8+ multi-language plan
+
+**Scope additions:**
+
+- Article language auto-detected and stored in `Article.language` field
+- AI prompts have language-specific versions (`extract-concepts.en.v1.ts`, `extract-concepts.vi.v1.ts`)
+- PostgreSQL FTS configuration dynamic per article (`'english'`, `'simple'` for Vietnamese)
+- Search results can span languages; UI shows article language badge
+- Concept extraction prompts include language directive: "Respond in same language as input"
+
+**Known limitations to document:**
+
+- Vietnamese FTS uses `'simple'` config (no stemming) — accepted trade-off
+- Cross-language concept matching is hard (Vietnamese "Bộ nhớ đệm" vs English "Cache") — Phase 8 explores embedding similarity for this
+- Mixed-language articles (code-switched VN/EN) handled best-effort
+
+### 12.5 i18n keys structure
+
+`apps/web/messages/en.json`:
+
+```json
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "loading": "Loading..."
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "submitButton": "Log in"
+    },
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "tooManyAttempts": "Too many attempts. Try again in {minutes} minutes."
+    }
+  },
+  "articles": {
+    "list": {
+      "empty": "No articles yet. Save your first article to get started!",
+      "count": "{count, plural, =0 {No articles} =1 {1 article} other {# articles}}"
+    },
+    "save": {
+      "success": "Article saved. Processing in background.",
+      "errors": {
+        "unsupportedLanguage": "Article appears to be in {language}. KnowVault currently supports English only — multi-language coming in Phase 8."
+      }
+    }
+  }
+}
+```
+
+### 12.6 Type safety
+
+Generate TypeScript types from `en.json` so that `t('articles.list.empty')` is type-checked. Misspelled keys → compile error, not runtime.
+
+```typescript
+// apps/web/src/types/i18n.d.ts (auto-generated)
+type Messages = typeof import('@/messages/en.json');
+declare interface IntlMessages extends Messages {}
+```
+
+### 12.7 Backend i18n
+
+NestJS backend largely doesn't need i18n in MVP because:
+
+- API responses use machine-readable error codes (not human strings)
+- UI translates error codes to localized messages
+- Logs are English-only (standard practice)
+
+Example pattern:
+
+```typescript
+// Backend returns:
+{ errorCode: 'ARTICLE_LANGUAGE_UNSUPPORTED', context: { language: 'vi' } }
+
+// Frontend translates:
+const t = useTranslations('articles.save.errors');
+t('unsupportedLanguage', { language: getLanguageName(errorCode.context.language) });
+```
+
+This separation keeps backend simple and pushes localization to where it belongs (UI layer).
+
+### 12.8 Phase Plan integration
+
+- **Phase 1:** Setup next-intl, externalize all strings, English `messages/en.json` complete
+- **Phase 2-7:** Continue adding English keys as features are built; reject non-English articles gracefully
+- **Phase 8:** Multi-language content support (article detection, localized AI prompts, multi-language FTS)
+- **Phase 10:** Vietnamese UI locale (`messages/vi.json`), locale switcher in UI, locale persistence per user
+
+---
+
+## 13. Phase Plan (timing approximate)
 
 Each phase has clear deliverables and Exploration touchpoints.
 
 ### Phase 0: Project Setup (Week 1)
+
 - Initialize pnpm monorepo
 - Setup Next.js, NestJS, Prisma, Neon
 - Configure ESLint, Prettier, Husky
@@ -1231,6 +1512,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Empty but well-configured monorepo with working dev environment
 
 ### Phase 1: Foundation (Week 2-3)
+
 - Implement domain model (entities, value objects)
 - Implement Prisma schema, run migrations
 - Implement Auth module (register, login, refresh, JWT)
@@ -1243,6 +1525,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Can register, login, save articles (manually paste content), search articles
 
 ### Phase 2: AI Processing Pipeline (Week 4-5)
+
 - Implement AI provider abstractions (Gemini, OpenAI)
 - Implement BullMQ setup with Redis
 - Implement article processing pipeline (stages 1-5)
@@ -1254,6 +1537,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Articles processed end-to-end. Concepts extracted. Questions generated. Costs tracked.
 
 ### Phase 3: Browser Extension + Save UX (Week 6)
+
 - Implement browser extension (Manifest V3)
 - Implement content extraction (Readability.js)
 - Implement quick-save endpoint
@@ -1261,6 +1545,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** 1-click save from any webpage with sub-200ms confirmation
 
 ### Phase 4: Review System + Concept Linking (Week 7-8)
+
 - Implement SM-2 algorithm in domain layer with property-based tests
 - Implement review queue API
 - Implement review UI flow
@@ -1272,6 +1557,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Daily review flow working. Concepts visible. Graph navigable.
 
 ### Phase 5: Notes + Highlights (Week 9)
+
 - Implement Note CRUD with markdown rendering
 - Implement Highlight feature in article reader
 - Implement note-to-concept tagging
@@ -1279,6 +1565,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Can annotate articles. Notes searchable. Tags work.
 
 ### Phase 6: Search Evolution (Week 10-11)
+
 - **Exploration 1 — Approach B:** Implement vector search with pgvector
 - Benchmark vs Approach A
 - **Exploration 1 — Approach C:** Hybrid search + reranking
@@ -1286,6 +1573,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Best-in-class search with documented trade-offs
 
 ### Phase 7: Background Processing Maturity (Week 12)
+
 - **Exploration 2 — Approach C:** Migrate to BullMQ with proper patterns
 - Implement job monitoring dashboard
 - Implement retry policies, dead letter queues
@@ -1293,12 +1581,14 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Production-grade async processing
 
 ### Phase 8: AI Cost Optimization (Week 13)
+
 - **Exploration 3 — Approach B:** Content deduplication
 - **Exploration 3 — Approach C:** Layered caching, batch processing, few-shot prompts
 - Measure cost reduction, document
 - **Deliverable:** Cost per article reduced significantly with data
 
 ### Phase 9: Data Layer Optimization (Week 14)
+
 - **Exploration 4 — Approach C:** EXPLAIN ANALYZE profiling
 - Add strategic indexes
 - Implement materialized views for analytics
@@ -1306,6 +1596,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Performance benchmarks showing improvements
 
 ### Phase 10: Frontend Maturity (Week 15)
+
 - **Exploration 5 — Approach C:** Design system + Storybook
 - Visual regression tests
 - Accessibility audit
@@ -1313,6 +1604,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Polished UI with component library
 
 ### Phase 11: Security Hardening (Week 16-17)
+
 - **Exploration 6 — All Approaches**
 - STRIDE threat modeling for save flow, AI processing
 - OWASP Top 10 verification
@@ -1323,6 +1615,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 - **Deliverable:** Comprehensive security audit document, automated security checks in CI
 
 ### Phase 12: Polish + Portfolio Prep (Week 18)
+
 - Write comprehensive README
 - Create demo video/walkthrough
 - Write portfolio article based on Vision Section 11
@@ -1332,13 +1625,67 @@ Each phase has clear deliverables and Exploration touchpoints.
 
 ---
 
-## 13. Testing Strategy
+### Future explorations (post-MVP, optional)
+
+These are documented as known opportunities, not committed work. Implement only if value is clear and current state is stable.
+
+#### Future Exploration A: Prisma 7 Upgrade
+
+**Timing:** Post-Phase 12, after MVP completion and stability proven
+
+**Why considered:**
+
+- Rust-free, ESM-first, generally faster than Prisma 6
+- Better TypeScript integration
+- Stays current with ORM evolution
+- Documents migration learnings for portfolio
+
+**Why deferred from MVP:**
+
+- pgvector + Prisma 7 had compatibility issues at project start (verified via GitHub issues)
+- Breaking changes require architectural shift (prisma.config.ts, ESM-only, explicit env loading)
+- Driver adapter pattern requires PrismaService refactor
+- Scope creep risk for Phase 0/1 — would delay core feature work
+
+**Required artifacts when undertaken:**
+
+- ADR documenting Prisma 6 → 7 decision
+- Pre-migration benchmark (query performance, build times, bundle size)
+- Migration plan with rollback strategy
+- Post-migration benchmark comparison
+- Postmortem of any issues encountered
+- Updates to all schema files, prisma.config.ts setup
+- Verify pgvector still works (current blocker for early migration)
+- Update CLAUDE.md stack constants
+
+**Skill evidenced:** Major version upgrade workflow, breaking change management, dependency risk assessment
+
+**Estimated effort:** 1-2 weeks if pgvector works, indefinitely if pgvector issue persists
+
+#### Future Exploration B: Multi-language Content Pipeline
+
+(See Section 12.4 — already planned for Phase 8+)
+
+#### Future Exploration C: Open-source release polish
+
+Possible work to make KnowVault genuinely usable by other developers:
+
+- Comprehensive contributing guide
+- Docker-compose for full local stack (deviation from current strategy, documented in ADR)
+- Hosted demo environment
+- API documentation via OpenAPI
+- npm package for `@knowvault/shared` types
+
+---
+
+## 14. Testing Strategy
 
 Tests written from day one. No "no tests" phase.
 
 ### 13.1 Test Pyramid
 
 **Unit tests (largest layer):**
+
 - All domain entities and value objects
 - All domain services (SM-2 algorithm, knowledge graph)
 - All pure functions in services
@@ -1346,12 +1693,14 @@ Tests written from day one. No "no tests" phase.
 - Target: < 5 seconds total
 
 **Property-based tests:**
+
 - SM-2 algorithm (critical correctness)
 - Embedding similarity computations
 - Knowledge graph traversals
 - Use `fast-check` library
 
 **Integration tests:**
+
 - Repository layer against real database (testcontainers)
 - Module controllers with full module loaded
 - BullMQ workers with real Redis
@@ -1359,28 +1708,31 @@ Tests written from day one. No "no tests" phase.
 - Target: < 2 minutes total
 
 **E2E tests:**
+
 - Critical flows: register → save → process → review
 - Run nightly + on release branches
 - Use Playwright
 
 **Mutation testing:**
+
 - Run weekly on domain layer
 - Use Stryker
 - Catch tests that pass without actually testing
 
 ### 13.2 Coverage Targets
 
-| Layer | Target | Measurement |
-|-------|--------|-------------|
-| Domain | 95%+ | Strict, including branches |
-| Application (services) | 80%+ | Line coverage |
-| Infrastructure | 60%+ | Integration tests dominate |
-| Controllers | 70%+ | Integration tests |
-| Overall | 75%+ | Codecov in CI |
+| Layer                  | Target | Measurement                |
+| ---------------------- | ------ | -------------------------- |
+| Domain                 | 95%+   | Strict, including branches |
+| Application (services) | 80%+   | Line coverage              |
+| Infrastructure         | 60%+   | Integration tests dominate |
+| Controllers            | 70%+   | Integration tests          |
+| Overall                | 75%+   | Codecov in CI              |
 
 ### 13.3 Test Patterns
 
 **Example: SM-2 property test**
+
 ```typescript
 import { fc } from 'fast-check';
 import { calculateSM2 } from '@/domain/review/sm2.service';
@@ -1414,7 +1766,7 @@ describe('SM-2 algorithm', () => {
 
 ---
 
-## 14. Security Baseline (Phase 1 onward)
+## 15. Security Baseline (Phase 1 onward)
 
 Even before Exploration 6, these are non-negotiable from day one:
 
@@ -1433,9 +1785,10 @@ Even before Exploration 6, these are non-negotiable from day one:
 
 ---
 
-## 15. Environment Variables
+## 16. Environment Variables
 
 `apps/api/.env.example`:
+
 ```bash
 # Server
 NODE_ENV=development
@@ -1475,19 +1828,21 @@ RATE_LIMIT_AI_PER_DAY=100
 ```
 
 `apps/web/.env.local.example`:
+
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
 NEXT_PUBLIC_SENTRY_DSN=
 ```
 
 `apps/extension/.env.example`:
+
 ```bash
 API_BASE_URL=http://localhost:3001/api
 ```
 
 ---
 
-## 16. Definition of Done (per feature)
+## 17. Definition of Done (per feature)
 
 A feature is "done" when ALL of these hold:
 
@@ -1500,7 +1855,7 @@ A feature is "done" when ALL of these hold:
 7. **Authentication enforced** unless explicitly `@Public()`
 8. **userId from JWT** never from request body
 9. **Rate limit applied** if endpoint touches AI
-10. **Error handling:** User-friendly Vietnamese error messages
+10. **Error handling:** Backend returns structured `{ errorCode, context }`, frontend renders user-friendly English message via next-intl. NO hardcoded strings in components.
 11. **Logged appropriately:** Structured logs at INFO for business events, ERROR for failures
 12. **Documented:** If decision was made, ADR written
 13. **Frontend:** Loading states, error states, empty states
@@ -1509,7 +1864,7 @@ A feature is "done" when ALL of these hold:
 
 ---
 
-## 17. What this PRD does NOT cover
+## 18. What this PRD does NOT cover
 
 Intentionally out of scope for this document:
 
@@ -1521,7 +1876,7 @@ Intentionally out of scope for this document:
 
 ---
 
-## 18. Next Steps After PRD Approval
+## 19. Next Steps After PRD Approval
 
 1. **Create CLAUDE.md** adapted for this learning-driven project
 2. **Initialize repository** with monorepo structure
@@ -1533,6 +1888,7 @@ Intentionally out of scope for this document:
 ## Appendix A: Quick Reference for Claude Code
 
 ### Critical conventions
+
 - Domain layer in `apps/api/src/domain/` is PURE — no NestJS, no Prisma imports
 - Repository interfaces in domain, implementations in `infrastructure/`
 - DTOs for ALL API input with class-validator
@@ -1543,6 +1899,7 @@ Intentionally out of scope for this document:
 - ADRs in `/docs/adr/NNNN-title.md` format with template
 
 ### File structure quick reference
+
 - New feature → `apps/api/src/modules/<feature>/`
 - New domain concept → `apps/api/src/domain/<concept>/`
 - New AI provider → `apps/api/src/modules/ai/providers/`
@@ -1550,8 +1907,9 @@ Intentionally out of scope for this document:
 - New ADR → `docs/adr/NNNN-decision-title.md`
 
 ### Stack constants (do not change without ADR)
+
 - `nestjs: 10.x`
-- `prisma: 5.x`
+- `prisma: 6.x` (Prisma 7 considered — see Phase 8+ exploration note in Section 12)
 - `next: 14.x`
 - `pnpm: 9.x`
 - `node: 20.x LTS`
