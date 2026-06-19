@@ -38,3 +38,6 @@ logs/
 # Prisma
 apps/api/prisma/dev.db
 apps/api/prisma/test.db
+
+# Personal learning notes — local only, not part of the codebase
+.learning/
