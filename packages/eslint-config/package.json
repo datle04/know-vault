@@ -1,0 +1,12 @@
+{
+  "name": "@knowvault/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "typecheck": "echo 'No types to check'"
+  },
+  "peerDependencies": {
+    "eslint": ">=8.0.0"
+  }
+}
