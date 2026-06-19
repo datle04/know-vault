@@ -1,0 +1,321 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+// ─── User Domain ───
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  name           String
+  avatarUrl      String?
+  articles       Article[]
+  notes          Note[]
+  reviewAttempts ReviewAttempt[]
+  refreshTokens  RefreshToken[]
+  concepts       Concept[]
+  preferences    UserPreference?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model UserPreference {
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String   @unique
+  reviewsPerDay  Int      @default(10)
+  difficultyBias Float    @default(0)
+  aiProvider     String   @default("gemini")
+  updatedAt      DateTime @updatedAt
+}
+
+// ─── Article Domain ───
+
+model Article {
+  id                 String          @id @default(cuid())
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String
+  url                String
+  urlHash            String
+  title              String
+  author             String?
+  siteName           String?
+  publishedAt        DateTime?
+  savedAt            DateTime        @default(now())
+  content            String          @db.Text
+  contentHash        String
+  wordCount          Int
+  readingTimeMin     Int
+  language           String          @default("en")
+  languageConfidence Float?
+  languageDetectedBy String?
+  status             ArticleStatus   @default(PENDING)
+  processedAt        DateTime?
+  processingError    String?
+  aiCost             Float           @default(0)
+  chunks             ArticleChunk[]
+  concepts           ArticleConcept[]
+  questions          Question[]
+  notes              Note[]
+  highlights         Highlight[]
+
+  @@unique([userId, urlHash])
+  @@index([userId, savedAt])
+  @@index([userId, status])
+}
+
+enum ArticleStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model ArticleChunk {
+  id         String                      @id @default(cuid())
+  article    Article                     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId  String
+  order      Int
+  content    String                      @db.Text
+  tokenCount Int
+  embedding  Unsupported("vector(1536)")?
+
+  @@index([articleId, order])
+}
+
+// ─── Concept Domain (Knowledge Graph) ───
+
+model Concept {
+  id            String           @id @default(cuid())
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  name          String
+  nameSlug      String
+  description   String?          @db.Text
+  embedding     Unsupported("vector(1536)")?
+  customColor   String?
+  articles      ArticleConcept[]
+  questions     QuestionConcept[]
+  noteLinks     NoteConcept[]
+  outgoingLinks ConceptLink[]    @relation("source")
+  incomingLinks ConceptLink[]    @relation("target")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([userId, nameSlug])
+  @@index([userId])
+}
+
+model ArticleConcept {
+  article        Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId      String
+  concept        Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId      String
+  confidence     Float
+  manualOverride Boolean @default(false)
+
+  @@id([articleId, conceptId])
+  @@index([conceptId])
+}
+
+model ConceptLink {
+  id          String       @id @default(cuid())
+  source      Concept      @relation("source", fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId    String
+  target      Concept      @relation("target", fields: [targetId], references: [id], onDelete: Cascade)
+  targetId    String
+  relation    LinkRelation @default(RELATED)
+  strength    Float        @default(0.5)
+  source_type LinkSource
+  createdAt   DateTime     @default(now())
+
+  @@unique([sourceId, targetId, relation])
+  @@index([sourceId])
+  @@index([targetId])
+}
+
+enum LinkRelation {
+  RELATED
+  PREREQUISITE
+  EXAMPLE_OF
+  CONTRADICTS
+  EXTENDS
+}
+
+enum LinkSource {
+  AI_SUGGESTED
+  USER_CREATED
+  USER_CONFIRMED
+}
+
+// ─── Question & Review Domain ───
+
+model Question {
+  id             String            @id @default(cuid())
+  article        Article           @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId      String
+  text           String            @db.Text
+  expectedAnswer String            @db.Text
+  difficulty     Difficulty        @default(MEDIUM)
+  concepts       QuestionConcept[]
+  review         Review?
+  userRating     Int?
+  ratedAt        DateTime?
+  createdAt      DateTime          @default(now())
+
+  @@index([articleId])
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model QuestionConcept {
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+  concept    Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId  String
+
+  @@id([questionId, conceptId])
+}
+
+model Review {
+  id             String          @id @default(cuid())
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId     String          @unique
+  easinessFactor Float           @default(2.5)
+  interval       Int             @default(1)
+  repetitions    Int             @default(0)
+  nextReviewAt   DateTime        @default(now())
+  attempts       ReviewAttempt[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([nextReviewAt])
+}
+
+model ReviewAttempt {
+  id            String   @id @default(cuid())
+  review        Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId      String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  quality       Int
+  userAnswer    String?  @db.Text
+  aiEvaluation  String?  @db.Text
+  attemptedAt   DateTime @default(now())
+
+  @@index([userId, attemptedAt])
+}
+
+// ─── Notes & Highlights ───
+
+model Note {
+  id          String      @id @default(cuid())
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  article     Article?    @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  articleId   String?
+  highlight   Highlight?  @relation(fields: [highlightId], references: [id], onDelete: SetNull)
+  highlightId String?     @unique
+  content     String      @db.Text
+  embedding   Unsupported("vector(1536)")?
+  concepts    NoteConcept[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([articleId])
+}
+
+model NoteConcept {
+  note      Note       @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  noteId    String
+  concept   Concept    @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId String
+  source    LinkSource @default(USER_CREATED)
+
+  @@id([noteId, conceptId])
+}
+
+model Highlight {
+  id        String   @id @default(cuid())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  startPos  Int
+  endPos    Int
+  text      String   @db.Text
+  color     String   @default("yellow")
+  note      Note?
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+}
+
+// ─── Operational ───
+
+model AICallLog {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String
+  operation    String
+  inputTokens  Int
+  outputTokens Int
+  costUsd      Float
+  latencyMs    Int
+  success      Boolean
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([provider, createdAt])
+}
+
+model JobLog {
+  id          String    @id @default(cuid())
+  queueName   String
+  jobId       String
+  jobName     String
+  status      JobStatus
+  attempts    Int       @default(0)
+  data        Json?
+  result      Json?
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([queueName, status])
+  @@index([createdAt])
+}
+
+enum JobStatus {
+  WAITING
+  ACTIVE
+  COMPLETED
+  FAILED
+  DELAYED
+}
