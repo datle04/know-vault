@@ -15,8 +15,8 @@ datasource db {
 model User {
   id             String          @id @default(cuid())
   email          String          @unique
-  passwordHash   String
-  name           String
+  passwordHash   String?
+  name           String?
   avatarUrl      String?
   articles       Article[]
   notes          Note[]
@@ -26,6 +26,7 @@ model User {
   preferences    UserPreference?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  oauthAccounts  OAuthAccount[]
 }
 
 model RefreshToken {
@@ -39,6 +40,19 @@ model RefreshToken {
 
   @@index([userId])
 }
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  provider          String   // "google", "github"
+  providerAccountId String   // user's ID on the provider side
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
 
 model UserPreference {
   id             String   @id @default(cuid())

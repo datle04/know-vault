@@ -3,16 +3,19 @@ import { Entity } from '../shared/entity';
 export interface CreateUserProps {
   id: string;
   email: string;
+  name: string | null;
   passwordHash: string;
 }
 
 export interface UserProps extends CreateUserProps {
   createdAt: Date;
+  name: string | null;
 }
 
 export class User extends Entity {
   readonly id: string;
   readonly email: string;
+  readonly name: string | null;
   readonly createdAt: Date;
 
   private readonly _passwordHash: string;
@@ -21,6 +24,7 @@ export class User extends Entity {
     super();
     this.id = props.id;
     this.email = props.email;
+    this.name = props.name;
     this.createdAt = props.createdAt;
     this._passwordHash = props.passwordHash;
   }
