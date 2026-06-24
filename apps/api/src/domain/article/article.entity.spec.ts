@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Article } from './article.entity.js';
 import { ArticleUrl } from './article-url.vo.js';
 import { ArticleSavedEvent } from './events/article-saved.event.js';

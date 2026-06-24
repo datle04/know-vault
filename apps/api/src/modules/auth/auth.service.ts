@@ -10,7 +10,6 @@ import { PrismaService } from '../../infrastructure/persistence/prisma.service.j
 import { User } from '../../domain/user/user.entity.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { error } from 'console';
 
 const BCRYPT_ROUNDS = 12;
 const REFRESH_TOKEN_BYTES = 40;

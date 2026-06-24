@@ -4,7 +4,6 @@ import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service.js';
 import { PrismaService } from '../../infrastructure/persistence/prisma.service.js';
-import { compare } from 'bcrypt';
 
 vi.mock('bcrypt', () => ({
   hash: vi.fn().mockResolvedValue('hashed-password'),
@@ -12,7 +11,6 @@ vi.mock('bcrypt', () => ({
 }));
 
 import * as bcrypt from 'bcrypt';
-import { create } from 'domain';
 
 const mockPrisma = {
   user: {

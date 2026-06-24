@@ -28,7 +28,7 @@ api.interceptors.response.use(
         setAccessToken(data.accessToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original); // retry original request
-      } catch (error) {
+      } catch {
         clearAccessToken();
         window.location.href = '/login';
       }
