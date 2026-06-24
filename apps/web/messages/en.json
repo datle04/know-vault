@@ -1,0 +1,76 @@
+{
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your KnowVault account",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "submitButton": "Sign in",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Sign up",
+      "errors": {
+        "invalidCredentials": "Invalid email or password",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Start building your knowledge base",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordHint": "At least 8 characters",
+      "submitButton": "Create account",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "errors": {
+        "emailTaken": "An account with this email already exists",
+        "generic": "Something went wrong. Please try again."
+      }
+    }
+  },
+  "articles": {
+    "list": {
+      "title": "My Library",
+      "empty": "No articles yet. Save your first article to get started.",
+      "searchPlaceholder": "Search articles...",
+      "saveButton": "Save Article",
+      "wordCount": "{count} words",
+      "readingTime": "{min} min read"
+    },
+    "save": {
+      "title": "Save Article",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://...",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Article title",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Paste the article text here...",
+      "authorLabel": "Author",
+      "authorPlaceholder": "Optional",
+      "submitButton": "Save",
+      "successMessage": "Article saved successfully",
+      "errors": {
+        "alreadySaved": "You've already saved this article",
+        "generic": "Failed to save article. Please try again."
+      }
+    },
+    "status": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "PROCESSED": "Ready",
+      "FAILED": "Failed"
+    }
+  },
+  "nav": {
+    "library": "Library",
+    "save": "Save Article",
+    "logout": "Logout"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "cancel": "Cancel"
+  }
+}

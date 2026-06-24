@@ -35,32 +35,32 @@ The Technical PRD constrains HOW we build. Product Vision constrains WHY and WHA
 
 ## 2. Stack (final, confirmed)
 
-| Layer                 | Choice                                           | Rationale                                                  |
-| --------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
-| **Frontend**          | Next.js 14 (App Router) + TailwindCSS            | Modern, SSR, ecosystem                                     |
-| **State (server)**    | TanStack Query v5                                | Cache, retry, optimistic updates                           |
-| **State (client)**    | Zustand                                          | Minimal, no boilerplate                                    |
-| **Forms**             | React Hook Form + Zod                            | Type-safe, performant                                      |
-| **Backend**           | NestJS 10+                                       | Module-based, DDD-friendly, DI                             |
-| **API style**         | REST (not tRPC, not GraphQL)                     | Explicit contract, easier to test independently            |
-| **ORM**               | Prisma 6.x (latest stable)                       | Type-safe, migration management; pgvector support verified |
-| **Database**          | PostgreSQL 15+ (Neon)                            | ACID, pgvector support, free tier                          |
-| **Vector store**      | pgvector extension                               | Native PostgreSQL, no separate service                     |
-| **Queue**             | BullMQ                                           | Redis-backed, proven, NestJS integration                   |
-| **Redis**             | Upstash                                          | Free tier, REST-based, serverless                          |
-| **AI Generation**     | Google Gemini 2.0 Flash                          | 1500 free req/day, multimodal                              |
-| **AI Embeddings**     | OpenAI text-embedding-3-small                    | $0.02/1M tokens, proven quality                            |
-| **Auth**              | Custom JWT (NestJS)                              | Demonstrates auth skills, no vendor lock                   |
-| **File storage**      | Cloudinary                                       | Free tier, CDN, image transforms                           |
-| **Browser Extension** | Manifest V3 + vanilla JS/TS                      | Modern, future-proof                                       |
-| **Web hosting**       | Vercel                                           | Free tier, optimized for Next.js                           |
-| **API hosting**       | Render                                           | Free tier 750h/month                                       |
-| **CI/CD**             | GitHub Actions                                   | Free for public repos                                      |
-| **Error tracking**    | Sentry                                           | Free tier (5K errors/month)                                |
-| **Testing**           | Jest (unit), Vitest (frontend), Playwright (E2E) | Industry standard                                          |
-| **Package manager**   | pnpm + workspaces                                | Disk efficiency, monorepo support                          |
-| **Linting**           | ESLint + Prettier                                | Code quality                                               |
-| **Type safety**       | TypeScript 5.3+ strict mode                      | Non-negotiable                                             |
+| Layer                 | Choice                                             | Rationale                                                  |
+| --------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| **Frontend**          | Next.js 14 (App Router) + TailwindCSS              | Modern, SSR, ecosystem                                     |
+| **State (server)**    | TanStack Query v5                                  | Cache, retry, optimistic updates                           |
+| **State (client)**    | Zustand                                            | Minimal, no boilerplate                                    |
+| **Forms**             | React Hook Form + Zod                              | Type-safe, performant                                      |
+| **Backend**           | NestJS 10+                                         | Module-based, DDD-friendly, DI                             |
+| **API style**         | REST (not tRPC, not GraphQL)                       | Explicit contract, easier to test independently            |
+| **ORM**               | Prisma 6.x (latest stable)                         | Type-safe, migration management; pgvector support verified |
+| **Database**          | PostgreSQL 15+ (Neon)                              | ACID, pgvector support, free tier                          |
+| **Vector store**      | pgvector extension                                 | Native PostgreSQL, no separate service                     |
+| **Queue**             | BullMQ                                             | Redis-backed, proven, NestJS integration                   |
+| **Redis**             | Upstash                                            | Free tier, REST-based, serverless                          |
+| **AI Generation**     | Google Gemini 2.0 Flash                            | 1500 free req/day, multimodal                              |
+| **AI Embeddings**     | OpenAI text-embedding-3-small                      | $0.02/1M tokens, proven quality                            |
+| **Auth**              | Custom JWT (NestJS)                                | Demonstrates auth skills, no vendor lock                   |
+| **File storage**      | Cloudinary                                         | Free tier, CDN, image transforms                           |
+| **Browser Extension** | Manifest V3 + vanilla JS/TS                        | Modern, future-proof                                       |
+| **Web hosting**       | Vercel                                             | Free tier, optimized for Next.js                           |
+| **API hosting**       | Render                                             | Free tier 750h/month                                       |
+| **CI/CD**             | GitHub Actions                                     | Free for public repos                                      |
+| **Error tracking**    | Sentry                                             | Free tier (5K errors/month)                                |
+| **Testing**           | Vitest (unit), Vitest (frontend), Playwright (E2E) | Industry standard                                          |
+| **Package manager**   | pnpm + workspaces                                  | Disk efficiency, monorepo support                          |
+| **Linting**           | ESLint + Prettier                                  | Code quality                                               |
+| **Type safety**       | TypeScript 5.3+ strict mode                        | Non-negotiable                                             |
 
 ### Stack decisions NOT to re-litigate
 
