@@ -96,9 +96,9 @@ You read an article about React Server Components.
 
 **Testing**
 
-- Jest for backend unit tests
-- Vitest for frontend tests
-- Playwright for E2E
+- Vitest for backend unit and integration tests
+- Vitest + React Testing Library for frontend component tests
+- Playwright for E2E tests
 - fast-check for property-based tests
 - Testcontainers for integration tests
 
