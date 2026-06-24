@@ -10,10 +10,14 @@ export class ArticleUrl {
   }
 
   static create(raw: string): ArticleUrl {
+    let parsed: URL;
     try {
-      new URL(raw); // validate URL format
-    } catch (error) {
+      parsed = new URL(raw);
+    } catch {
       throw new Error(`Invalid URL: ${raw}`);
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`URL must use http or https protocol: ${raw}`);
     }
     return new ArticleUrl(raw);
   }
