@@ -72,7 +72,7 @@ export class AuthService {
     return this.issueTokenPair(record.id, record.email);
   }
 
-  async refreshToken(token: string): Promise<TokenPair> {
+  async refresh(token: string): Promise<TokenPair> {
     const tokenHash = this.hashToken(token);
     const record = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
