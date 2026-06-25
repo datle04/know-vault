@@ -23,7 +23,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 ### Skill: Domain-Driven Design (DDD)
 
-**Status:** ⏳ Planned for Phase 1, ongoing
+**Status:** ✅ Evidenced (Phase 1) — entities, value objects, domain events, invariants
 
 **Evidence locations:**
 
@@ -34,22 +34,23 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 **What to look for:**
 
-- Zero `@Injectable()` decorators in domain folder
-- Zero Prisma/NestJS imports in domain folder
-- Repository interfaces in domain, implementations in infrastructure
-- Value objects with equality by value (ArticleStatus, URL, Difficulty)
-- Domain events emitted from entity behavior
+- `article.entity.ts` — `markAsProcessing()` throws if not PENDING (invariant enforcement)
+- `pullEvents()` pattern — clears array after return (prevents double-dispatch)
+- `ArticleUrl.create()` vs `reconstitute()` — two factory methods with different semantics
+- `article-status.vo.ts` — static singletons, private constructor, equality by value
+- Zero `@Injectable()` decorators in `apps/api/src/domain/` (verified)
+- Zero Prisma imports in `apps/api/src/domain/` (verified)
 
 **Related ADRs:**
 
-- `docs/adr/0003-domain-driven-design.md` — Why DDD for this project ⏳
-- `docs/adr/0005-repository-pattern.md` — Repository pattern decisions ⏳
+- `docs/adr/0001-initial-stack-choices.md` — Stack rationale including NestJS (DDD-friendly module system)
+- `docs/adr/0003-vitest-over-jest.md` — Testing framework for domain layer tests
 
 ---
 
 ### Skill: REST API Design with NestJS
 
-**Status:** ⏳ Planned for Phase 1, ongoing
+**Status:** ✅ Evidenced (Phase 1)
 
 **Evidence locations:**
 
@@ -67,12 +68,13 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 - Global ValidationPipe with whitelist + forbidNonWhitelisted
 - HTTP status codes used correctly
 - Error responses formatted consistently
+- userId always from JWT via @CurrentUser() — never from request body.
 
 ---
 
 ### Skill: Authentication & JWT Implementation
 
-**Status:** ⏳ Planned for Phase 1
+**Status:** ✅ Evidenced (Phase 1)
 
 **Evidence locations:**
 
@@ -126,7 +128,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 ### Skill: Database Design & Optimization (PostgreSQL)
 
-**Status:** ⏳ Evolution across Phases 1, 4, 9
+**Status:** 🟡 Partially evidenced (Phase 1 — schema + migrations; optimization in Phase 9)
 
 **Evidence locations:**
 
@@ -458,7 +460,7 @@ fc.assert(
 
 ### Skill: Next.js App Router
 
-**Status:** ⏳ Planned for Phase 1
+**Status:** 🟡 Partially evidenced (Phase 1 — basic routes, i18n, auth flow)
 
 **Evidence locations:**
 
@@ -479,7 +481,7 @@ fc.assert(
 
 ### Skill: State Management Architecture
 
-**Status:** ⏳ Evolution across Phases 1, 4
+**Status:** 🟡 Partially evidenced (Exploration 5 Approach A — useState + useEffect intentionally)
 
 **Evidence locations:**
 
@@ -549,7 +551,7 @@ fc.assert(
 
 ### Skill: CI/CD with GitHub Actions
 
-**Status:** 🟡 Partially evidenced (Phase 0 skeleton — typecheck + lint + build; security scan + deploy gates in later phases)
+**Status:** 🟡 Partially evidenced (Phase 1 — test job added, prisma generate step, cross-platform lockfile)
 
 **Evidence locations:**
 
@@ -566,6 +568,7 @@ fc.assert(
 - Matrix builds for multiple Node versions ⏳
 - Coverage uploaded to Codecov ⏳
 - Deploy gates ⏳
+- pnpm.json for cross-platform supportedArchitectures (win32 + linux x64)
 
 ---
 
@@ -666,12 +669,13 @@ fc.assert(
 
 ### Skill: Architecture Decision Records (ADRs)
 
-**Status:** 🟡 Partially evidenced (Phase 0 — 2 ADRs written; target 15+ by project completion)
+**Status:** 🟡 Partially evidenced (3 ADRs: stack choices, local dev strategy, Vitest over Jest)
 
 **Evidence locations:**
 
 - `docs/adr/0001-initial-stack-choices.md` — Full stack rationale with alternatives rejected
 - `docs/adr/0002-local-development-strategy.md` — Hybrid cloud/Docker dev strategy
+- `docs/adr/0003-vitest-over-jest.md` — Testing framework decision with ESM rationale
 
 **What to look for:**
 
@@ -790,5 +794,6 @@ If you find skills claimed without evidence, or evidence that doesn't actually d
 | Project start | Initial document created                                                                                                                                                                                                                                                                     |
 | 2026-06-18    | Renamed "Container & Local Development" → "Containerization & Deployment"; removed incorrect docker-compose.yml reference per ADR-0002 and PRD Section 3.3; added "Database Branching Workflows (Neon)" skill entry; added cross-reference from "Database Design & Optimization" to ADR-0002 |
 | 2026-06-19    | Phase 0 complete — marked CI/CD, Monorepo Management, ADRs as 🟡 Partially evidenced with specific evidence locations from Phase 0 commits                                                                                                                                                   |
+| 2026-06-24    | Phase 1 complete — marked DDD, REST API, Auth/JWT as ✅ Evidenced; updated CI/CD, Database, Next.js, State Management, ADRs                                                                                                                                                                  |
 
 [Each phase completion will add an entry here documenting which skills moved from ⏳ to evidenced]
