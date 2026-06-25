@@ -316,21 +316,21 @@ pnpm db:seed        # Seed development data
 
 ## Project status
 
-| Phase                              | Status         | Highlights                                      |
-| ---------------------------------- | -------------- | ----------------------------------------------- |
-| 0 — Project Setup                  | ⏳ Not started | Monorepo, CI/CD skeleton, tooling               |
-| 1 — Foundation                     | ⏳ Pending     | Auth, basic article CRUD, PostgreSQL FTS search |
-| 2 — AI Pipeline                    | ⏳ Pending     | Concept extraction, question generation, BullMQ |
-| 3 — Browser Extension              | ⏳ Pending     | One-click save flow                             |
-| 4 — Review System                  | ⏳ Pending     | SM-2 algorithm, daily reviews                   |
-| 5 — Notes & Highlights             | ⏳ Pending     | Annotation features                             |
-| 6 — Search Evolution               | ⏳ Pending     | Vector + hybrid search                          |
-| 7 — Background Processing Maturity | ⏳ Pending     | Production-grade queues                         |
-| 8 — AI Cost Optimization           | ⏳ Pending     | Caching, deduplication                          |
-| 9 — Data Layer Optimization        | ⏳ Pending     | EXPLAIN ANALYZE profiling                       |
-| 10 — Frontend Maturity             | ⏳ Pending     | Design system, Storybook                        |
-| 11 — Security Hardening            | ⏳ Pending     | OWASP audit, pen-testing                        |
-| 12 — Polish & Portfolio            | ⏳ Pending     | Demo prep, retrospective                        |
+| Phase                              | Status      | Highlights                                      |
+| ---------------------------------- | ----------- | ----------------------------------------------- |
+| 0 — Project Setup                  | ✅ Complete | Monorepo, CI/CD skeleton, tooling               |
+| 1 — Foundation                     | ✅ Complete | Auth, basic article CRUD, PostgreSQL FTS search |
+| 2 — AI Pipeline                    | ⏳ Pending  | Concept extraction, question generation, BullMQ |
+| 3 — Browser Extension              | ⏳ Pending  | One-click save flow                             |
+| 4 — Review System                  | ⏳ Pending  | SM-2 algorithm, daily reviews                   |
+| 5 — Notes & Highlights             | ⏳ Pending  | Annotation features                             |
+| 6 — Search Evolution               | ⏳ Pending  | Vector + hybrid search                          |
+| 7 — Background Processing Maturity | ⏳ Pending  | Production-grade queues                         |
+| 8 — AI Cost Optimization           | ⏳ Pending  | Caching, deduplication                          |
+| 9 — Data Layer Optimization        | ⏳ Pending  | EXPLAIN ANALYZE profiling                       |
+| 10 — Frontend Maturity             | ⏳ Pending  | Design system, Storybook                        |
+| 11 — Security Hardening            | ⏳ Pending  | OWASP audit, pen-testing                        |
+| 12 — Polish & Portfolio            | ⏳ Pending  | Demo prep, retrospective                        |
 
 [See detailed phase plan →](./PRD.md#12-phase-plan-timing-approximate)
 
@@ -414,11 +414,11 @@ This project would not exist without:
 
 ## Contact
 
-**Đạt** — frontend developer at WeGrowth, transitioning to full-stack
+**Le Tan Dat** — frontend developer, transitioning to full-stack
 
-- GitHub: [@username](https://github.com/datle04)
-- LinkedIn: [profile](https://linkedin.com/in/datle04)
-- Email: contact@example.com
+- GitHub: [@datle04](https://github.com/datle04)
+- LinkedIn: [datle04](https://linkedin.com/in/datle04)
+- Email: ldat0909@gmail.com
 
 Building in public. Following the journey from junior to senior, one exploration at a time.
 
