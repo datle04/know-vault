@@ -189,7 +189,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 **Evidence locations:**
 
-- `apps/api/prisma/schema.prisma` — Vector columns with `vector(1536)` type
+- `apps/api/prisma/schema.prisma` — Vector columns with `vector(768)` type
 - `apps/api/src/modules/search/semantic-search.service.ts` ⏳
 - `apps/api/prisma/migrations/` — Migration adding pgvector extension
 - `docs/performance/vector-search-benchmarks.md` ⏳
@@ -199,7 +199,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 - pgvector extension enabled correctly
 - Use of `<=>` operator for cosine distance
 - IVFFlat or HNSW index configuration
-- Embedding dimension matched to model (1536 for OpenAI text-embedding-3-small)
+- Embedding dimension matched to model (768 for Gemini text-embedding-004)
 - Query patterns: WHERE userId AND ORDER BY embedding distance
 - Cache hit ratio tracking for embeddings
 
@@ -266,7 +266,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 - `apps/api/src/modules/ai/providers/ai-provider.interface.ts` — Provider abstraction
 - `apps/api/src/modules/ai/providers/gemini.provider.ts` — Gemini implementation
-- `apps/api/src/modules/ai/providers/openai.provider.ts` — OpenAI implementation
+- `apps/api/src/modules/ai/providers/gemini-embedding.provider.ts` — Gemini implementation
 - `apps/api/src/modules/ai/ai-orchestrator.service.ts` — Routes calls per operation
 
 **What to look for:**

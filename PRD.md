@@ -49,7 +49,7 @@ The Technical PRD constrains HOW we build. Product Vision constrains WHY and WHA
 | **Queue**             | BullMQ                                             | Redis-backed, proven, NestJS integration                   |
 | **Redis**             | Upstash                                            | Free tier, REST-based, serverless                          |
 | **AI Generation**     | Google Gemini 2.0 Flash                            | 1500 free req/day, multimodal                              |
-| **AI Embeddings**     | OpenAI text-embedding-3-small                      | $0.02/1M tokens, proven quality                            |
+| **AI Embeddings**     | Google text-embedding-004 (free tier, 768 dims)    | \_                                                         |
 | **Auth**              | Custom JWT (NestJS)                                | Demonstrates auth skills, no vendor lock                   |
 | **File storage**      | Cloudinary                                         | Free tier, CDN, image transforms                           |
 | **Browser Extension** | Manifest V3 + vanilla JS/TS                        | Modern, future-proof                                       |
@@ -178,7 +178,7 @@ Local `pnpm dev` connects to cloud services, NOT local Docker containers:
 
 - PostgreSQL: Neon `dev` branch (`DATABASE_URL` in `.env`)
 - Redis: Upstash dev instance (`REDIS_URL` in `.env`)
-- AI services: same Gemini + OpenAI keys as production
+- AI services: same Gemini key as production
 
 **Why cloud for local dev:**
 
@@ -403,7 +403,7 @@ model ArticleChunk {
   order     Int     // Position in article
   content   String  @db.Text
   tokenCount Int
-  embedding Unsupported("vector(1536)")?  // OpenAI text-embedding-3-small dimension
+  embedding Unsupported("vector(768)")?
 
   @@index([articleId, order])
 }
@@ -611,7 +611,7 @@ model Highlight {
 model AICallLog {
   id            String   @id @default(cuid())
   userId        String
-  provider      String   // 'gemini', 'openai'
+  provider      String   // 'gemini', 'gemini-embedding'
   operation     String   // 'generate_questions', 'extract_concepts', 'embed'
   inputTokens   Int
   outputTokens  Int
@@ -700,7 +700,7 @@ apps/api/src/
 │   ├── ai/                     # AI providers, processing
 │   │   ├── providers/
 │   │   │   ├── gemini.provider.ts
-│   │   │   └── openai.provider.ts
+│   │   │   └── gemini-embedding.provider.ts
 │   │   ├── ai-orchestrator.service.ts
 │   │   └── prompt-templates/
 │   ├── jobs/                   # BullMQ queues
@@ -847,7 +847,7 @@ Background job: article-processing
   │   - Create ArticleChunk records
   │
   ├─ Stage 3: Embedding (enqueue 'embedding' job)
-  │   - For each chunk, generate embedding via OpenAI
+  │   - For each chunk, generate embedding via Gemini
   │   - Store in ArticleChunk.embedding
   │   - Log cost in AICallLog
   │
@@ -900,7 +900,7 @@ export interface GenerationResult {
 Implementations:
 
 - `GeminiProvider` (generation)
-- `OpenAIProvider` (embeddings)
+- `GeminiEmbeddingProvider` (embeddings)
 
 Orchestrator routes calls based on operation type. Future explorations can add Claude, local models, etc.
 
@@ -1526,7 +1526,7 @@ Each phase has clear deliverables and Exploration touchpoints.
 
 ### Phase 2: AI Processing Pipeline (Week 4-5)
 
-- Implement AI provider abstractions (Gemini, OpenAI)
+- Implement AI provider abstractions Gemini (generation + embeddings)
 - Implement BullMQ setup with Redis
 - Implement article processing pipeline (stages 1-5)
 - Implement prompt templates with versioning
@@ -1811,7 +1811,6 @@ BCRYPT_SALT_ROUNDS=12
 
 # AI Providers
 GEMINI_API_KEY=<from-aistudio>
-OPENAI_API_KEY=<from-openai>
 
 # File storage
 CLOUDINARY_CLOUD_NAME=
