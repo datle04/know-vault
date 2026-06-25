@@ -8,7 +8,7 @@ import { PrismaService } from '../../infrastructure/persistence/prisma.service.j
 import { ArticleUrl } from '../../domain/article/article-url.vo.js';
 import { SaveArticleDto } from './dto/save-article.dto.js';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto.js';
-import { randomBytes } from 'crypto';
+import { ArticleProcessorService } from './article-processor.service.js';
 
 type ArticleRecord = {
   id: string;
@@ -28,7 +28,10 @@ type ArticleRecord = {
 
 @Injectable()
 export class ArticlesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly processor: ArticleProcessorService,
+  ) {}
 
   async save(dto: SaveArticleDto, userId: string) {
     const articleUrl = ArticleUrl.create(dto.url);
@@ -49,9 +52,8 @@ export class ArticlesService {
     const wordCount = dto.content.trim().split(/\s+/).length;
     const readingTimeMin = Math.max(1, Math.round(wordCount / 200));
 
-    return this.prisma.article.create({
+    const article = await this.prisma.article.create({
       data: {
-        id: randomBytes(16).toString('hex'),
         userId,
         url: dto.url,
         urlHash: articleUrl.hash,
@@ -67,6 +69,16 @@ export class ArticlesService {
       },
       select: this.articleSelect(),
     });
+
+    // Exploration 2 - Approach A: synchronous processing
+    // Intentionally blocks HTTP response. Documents pain points:
+    // - Request times out for large articles (30-60s)
+    // - Cannot scale beyond 1 concurrent save
+    // - User waits entire processing time
+    // Approach B (fire-and-forget) will address these in Phase 2 iteration.
+    await this.processor.process(article.id, userId);
+
+    return article;
   }
 
   async findAll(userId: string, query: ListArticlesQueryDto) {

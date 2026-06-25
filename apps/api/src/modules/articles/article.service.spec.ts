@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ArticlesService } from '@/modules/articles/articles.service.js';
 import { PrismaService } from '../../infrastructure/persistence/prisma.service.js';
+import { ArticleProcessorService } from './article-processor.service.js';
 
 const mockArticle = {
   id: 'article-id',
@@ -32,6 +33,10 @@ const mockPrisma = {
   $queryRaw: vi.fn(),
 };
 
+const mockProcessor = {
+  process: vi.fn().mockResolvedValue(undefined),
+};
+
 describe('ArticlesService', () => {
   let service: ArticlesService;
 
@@ -42,6 +47,7 @@ describe('ArticlesService', () => {
       providers: [
         ArticlesService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: ArticleProcessorService, useValue: mockProcessor },
       ],
     }).compile();
 
@@ -62,6 +68,10 @@ describe('ArticlesService', () => {
       const result = await service.save(dto, 'user-id');
 
       expect(mockPrisma.article.create).toHaveBeenCalledOnce();
+      expect(mockProcessor.process).toHaveBeenCalledWith(
+        mockArticle.id,
+        'user-id',
+      );
       expect(result).toEqual(mockArticle);
     });
 
