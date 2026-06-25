@@ -137,7 +137,7 @@ export class ArticleProcessorService {
             concepts: extractedConcepts.map((c) => c.name),
           }),
         ].join('\n\n'),
-        { temperature: 0.3 },
+        { temperature: 0.3, maxTokens: 8192 },
       );
 
       for (const q of questions) {
