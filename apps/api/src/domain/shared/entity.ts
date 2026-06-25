@@ -1,4 +1,4 @@
-import { DomainEvent } from './domain-event';
+import { DomainEvent } from './domain-event.js';
 
 export abstract class Entity {
   private readonly _domainEvents: DomainEvent[] = [];
