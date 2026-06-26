@@ -113,7 +113,7 @@ model ArticleChunk {
   order      Int
   content    String                      @db.Text
   tokenCount Int
-  embedding  Unsupported("vector(1536)")?
+  embedding  Unsupported("vector(768)")?
 
   @@index([articleId, order])
 }
@@ -127,7 +127,7 @@ model Concept {
   name          String
   nameSlug      String
   description   String?          @db.Text
-  embedding     Unsupported("vector(1536)")?
+  embedding     Unsupported("vector(768)")?
   customColor   String?
   articles      ArticleConcept[]
   questions     QuestionConcept[]
@@ -256,7 +256,7 @@ model Note {
   highlight   Highlight?  @relation(fields: [highlightId], references: [id], onDelete: SetNull)
   highlightId String?     @unique
   content     String      @db.Text
-  embedding   Unsupported("vector(1536)")?
+  embedding   Unsupported("vector(768)")?
   concepts    NoteConcept[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

@@ -1,7 +1,7 @@
-import { Entity } from '../shared/entity';
-import { ArticleStatus } from './article-status.vo';
-import { ArticleUrl } from './article-url.vo';
-import { ArticleSavedEvent } from './events/article-saved.event';
+import { Entity } from '../shared/entity.js';
+import { ArticleStatus } from './article-status.vo.js';
+import { ArticleUrl } from './article-url.vo.js';
+import { ArticleSavedEvent } from './events/article-saved.event.js';
 
 export interface CreateArticleProps {
   id: string;

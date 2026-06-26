@@ -2,13 +2,14 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { PrismaService } from '../../infrastructure/persistence/prisma.service.js';
 import { ArticleUrl } from '../../domain/article/article-url.vo.js';
 import { SaveArticleDto } from './dto/save-article.dto.js';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto.js';
-import { randomBytes } from 'crypto';
+import { ArticleProcessorService } from './article-processor.service.js';
 
 type ArticleRecord = {
   id: string;
@@ -28,7 +29,12 @@ type ArticleRecord = {
 
 @Injectable()
 export class ArticlesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ArticlesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly processor: ArticleProcessorService,
+  ) {}
 
   async save(dto: SaveArticleDto, userId: string) {
     const articleUrl = ArticleUrl.create(dto.url);
@@ -49,9 +55,8 @@ export class ArticlesService {
     const wordCount = dto.content.trim().split(/\s+/).length;
     const readingTimeMin = Math.max(1, Math.round(wordCount / 200));
 
-    return this.prisma.article.create({
+    const article = await this.prisma.article.create({
       data: {
-        id: randomBytes(16).toString('hex'),
         userId,
         url: dto.url,
         urlHash: articleUrl.hash,
@@ -67,6 +72,13 @@ export class ArticlesService {
       },
       select: this.articleSelect(),
     });
+
+    // Approach B (fire-and-forget)
+    this.processor.process(article.id, userId).catch((err: unknown) => {
+      this.logger.error(`Background processing failed for ${article.id}`, err);
+    });
+
+    return article;
   }
 
   async findAll(userId: string, query: ListArticlesQueryDto) {
@@ -164,6 +176,7 @@ export class ArticlesService {
       readingTimeMin: true,
       language: true,
       processedAt: true,
+      aiCost: true,
       // content excluded by default - too large for list views
     };
   }

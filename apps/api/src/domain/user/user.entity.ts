@@ -1,4 +1,4 @@
-import { Entity } from '../shared/entity';
+import { Entity } from '../shared/entity.js';
 
 export interface CreateUserProps {
   id: string;

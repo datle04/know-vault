@@ -4,17 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { api } from '../../../lib/api';
+import { ArticleStatusBadge } from '@/components/articles/ArticleStatusBadge';
 
 interface Article {
   id: string;
   title: string;
   url: string;
   savedAt: string;
-  status: string;
+  status: 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
   wordCount: number;
   readingTimeMin: number;
   author: string | null;
   siteName: string | null;
+  aiCost: number;
 }
 
 interface ArticlesResponse {
@@ -26,7 +28,6 @@ interface ArticlesResponse {
 
 export default function DashboardPage() {
   const t = useTranslations('articles.list');
-  const tStatus = useTranslations('articles.status');
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [total, setTotal] = useState(0);
@@ -104,7 +105,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-400 mt-0.5 truncate">{article.url}</p>
                 </div>
                 <span className="text-xs text-gray-500 shrink-0">
-                  {tStatus(article.status as 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED')}
+                  <ArticleStatusBadge status={article.status} />
                 </span>
               </div>
 
@@ -112,6 +113,7 @@ export default function DashboardPage() {
                 {article.author && <span>{article.author}</span>}
                 <span>{t('readingTime', { min: article.readingTimeMin })}</span>
                 <span>{t('wordCount', { count: article.wordCount })}</span>
+                <span title="AI processing cost">${article.aiCost.toFixed(4)}</span>
                 <span>{new Date(article.savedAt).toLocaleDateString()}</span>
               </div>
             </div>

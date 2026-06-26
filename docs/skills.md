@@ -95,13 +95,18 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 **Related ADRs:**
 
-- `docs/adr/0007-jwt-vs-session-auth.md` — Auth strategy decision ⏳
+- `docs/adr/0007-jwt-vs-session-auth.md` ⏳ — Auth strategy decision (planned)
 
 ---
 
 ### Skill: Background Job Processing with BullMQ
 
-**Status:** ⏳ Evolution across Phases 1, 2, 7
+**Status:** 🟡 Partially evidenced (Phase 2 — Approach A + B implemented; BullMQ in Phase 7)
+
+**Evidence locations (Phase 2):**
+
+- `apps/api/src/modules/articles/articles.service.ts` — Approach A (sync) in git history, Approach B (fire-and-forget) current
+- `apps/api/src/modules/articles/article-processor.service.ts` — 5-stage processing pipeline
 
 **Evidence locations (after Phase 7):**
 
@@ -189,7 +194,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 **Evidence locations:**
 
-- `apps/api/prisma/schema.prisma` — Vector columns with `vector(1536)` type
+- `apps/api/prisma/schema.prisma` — Vector columns with `vector(768)` type
 - `apps/api/src/modules/search/semantic-search.service.ts` ⏳
 - `apps/api/prisma/migrations/` — Migration adding pgvector extension
 - `docs/performance/vector-search-benchmarks.md` ⏳
@@ -199,7 +204,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 - pgvector extension enabled correctly
 - Use of `<=>` operator for cosine distance
 - IVFFlat or HNSW index configuration
-- Embedding dimension matched to model (1536 for OpenAI text-embedding-3-small)
+- Embedding dimension matched to model (768 for Gemini text-embedding-004)
 - Query patterns: WHERE userId AND ORDER BY embedding distance
 - Cache hit ratio tracking for embeddings
 
@@ -207,13 +212,13 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 ### Skill: Prompt Engineering & Versioning
 
-**Status:** ⏳ Planned for Phase 2, iterated throughout
+**Status:** 🟡 Partially evidenced
 
 **Evidence locations:**
 
 - `apps/api/src/modules/ai/prompt-templates/` — All prompts as versioned code
-- `apps/api/src/modules/ai/prompt-templates/extract-concepts.v1.ts`
-- `apps/api/src/modules/ai/prompt-templates/extract-concepts.v2.ts` — Iteration after evaluation
+- `apps/api/src/modules/ai/prompt-templates/extract-concept.v1.ts`
+- `apps/api/src/modules/ai/prompt-templates/extract-concept.v2.ts` — Iteration after evaluation
 - `apps/api/src/modules/ai/evaluation/` — AI quality evaluation framework
 
 **What to look for:**
@@ -234,7 +239,7 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 ### Skill: AI Cost Optimization
 
-**Status:** ⏳ Multi-phase, peaks at Phase 8
+**Status:** 🟡 Partially evidenced, peaks at Phase 8
 
 **Evidence locations:**
 
@@ -260,13 +265,13 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 ### Skill: Multi-Provider AI Architecture
 
-**Status:** ⏳ Planned for Phase 2
+**Status:** ✅ Evidenced
 
 **Evidence locations:**
 
 - `apps/api/src/modules/ai/providers/ai-provider.interface.ts` — Provider abstraction
 - `apps/api/src/modules/ai/providers/gemini.provider.ts` — Gemini implementation
-- `apps/api/src/modules/ai/providers/openai.provider.ts` — OpenAI implementation
+- `apps/api/src/modules/ai/providers/gemini-embedding.provider.ts` — Gemini implementation
 - `apps/api/src/modules/ai/ai-orchestrator.service.ts` — Routes calls per operation
 
 **What to look for:**
@@ -370,7 +375,9 @@ fc.assert(
 
 ### Skill: AI Output Quality Evaluation
 
-**Status:** ⏳ Planned for Phase 2
+**Status:** ⏳ Deferred to Phase 8
+**Note:** Deferred from Phase 2 — evaluation framework requires ground truth data
+and at least one prompt iteration to compare. See `docs/explorations/03-ai-quality.md`.
 
 **Evidence locations:**
 
@@ -669,13 +676,14 @@ fc.assert(
 
 ### Skill: Architecture Decision Records (ADRs)
 
-**Status:** 🟡 Partially evidenced (3 ADRs: stack choices, local dev strategy, Vitest over Jest)
+**Status:** 🟡 Partially evidenced (4 ADRs: stack choices, local dev strategy, Vitest over Jest, Gemini embeddings)
 
 **Evidence locations:**
 
 - `docs/adr/0001-initial-stack-choices.md` — Full stack rationale with alternatives rejected
 - `docs/adr/0002-local-development-strategy.md` — Hybrid cloud/Docker dev strategy
 - `docs/adr/0003-vitest-over-jest.md` — Testing framework decision with ESM rationale
+- `docs/adr/0004-gemini-embeddings-over-openai.md` — Gemini-only AI decision (no OpenAI billing required)
 
 **What to look for:**
 

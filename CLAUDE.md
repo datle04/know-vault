@@ -8,7 +8,7 @@ This file provides guidance to Claude Code when working on the KnowVault project
 
 **KnowVault** — Personal learning operating system for developers. Save technical articles → AI extracts concepts and generates questions → Spaced repetition + concept graph → Long-term retention.
 
-**Stack:** Next.js 14 (App Router) + NestJS 10 + Prisma + PostgreSQL with pgvector (Neon) + BullMQ + Redis (Upstash) + Gemini Flash + OpenAI embeddings.
+**Stack:** Next.js 14 (App Router) + NestJS 10 + Prisma + PostgreSQL with pgvector (Neon) + BullMQ + Redis (Upstash) + Gemini Flash + Gemini text-embedding-004
 
 **Structure:** pnpm monorepo — `apps/web`, `apps/api`, `apps/extension`, `packages/shared`.
 
@@ -136,20 +136,20 @@ If deviating, write an ADR documenting the deviation reason.
 
 ## Stack decisions — DO NOT re-litigate
 
-| Decision           | Choice                        | Why                                                |
-| ------------------ | ----------------------------- | -------------------------------------------------- |
-| Database           | PostgreSQL (Neon)             | pgvector requires it; ACID for data integrity      |
-| Vector store       | pgvector                      | Native PostgreSQL, no separate service to maintain |
-| ORM                | Prisma 6.x (latest stable)    | Type-safe, migration management, pgvector verified |
-| Backend framework  | NestJS                        | DDD-friendly, module-based, DI container           |
-| Frontend framework | Next.js 14 App Router         | Modern React patterns                              |
-| AI generation      | Gemini Flash                  | 1500 free req/day handles MVP scale                |
-| AI embeddings      | OpenAI text-embedding-3-small | Proven, cheap ($0.02/1M tokens)                    |
-| Auth               | Custom JWT in NestJS          | Demonstrates auth implementation skills            |
-| Queue              | BullMQ + Upstash Redis        | Production-grade async patterns                    |
-| Package manager    | pnpm with workspaces          | Disk efficient, monorepo support                   |
-| Hosting            | Vercel + Render + Neon        | All free tier, sufficient for project              |
-| API style          | REST                          | Explicit contracts, easier to test                 |
+| Decision           | Choice                     | Why                                                |
+| ------------------ | -------------------------- | -------------------------------------------------- |
+| Database           | PostgreSQL (Neon)          | pgvector requires it; ACID for data integrity      |
+| Vector store       | pgvector                   | Native PostgreSQL, no separate service to maintain |
+| ORM                | Prisma 6.x (latest stable) | Type-safe, migration management, pgvector verified |
+| Backend framework  | NestJS                     | DDD-friendly, module-based, DI container           |
+| Frontend framework | Next.js 14 App Router      | Modern React patterns                              |
+| AI generation      | Gemini Flash               | 1500 free req/day handles MVP scale                |
+| AI embeddings      | Google text-embedding-004  | Free tier, 768 dims, same API key as Gemini        |
+| Auth               | Custom JWT in NestJS       | Demonstrates auth implementation skills            |
+| Queue              | BullMQ + Upstash Redis     | Production-grade async patterns                    |
+| Package manager    | pnpm with workspaces       | Disk efficient, monorepo support                   |
+| Hosting            | Vercel + Render + Neon     | All free tier, sufficient for project              |
+| API style          | REST                       | Explicit contracts, easier to test                 |
 
 If you find yourself wanting to propose alternatives mid-build, ask first with strong justification. The default is "no, follow the plan."
 
@@ -251,7 +251,7 @@ export class PrismaArticleRepository implements IArticleRepository {
 
 2. **Two connection URLs:** `DATABASE_URL` (pooled via PgBouncer, runtime) and `DIRECT_DATABASE_URL` (direct, for migrations). Migrations need direct because PgBouncer doesn't support DDL.
 
-3. **pgvector extension enabled:** Use `previewFeatures = ["postgresqlExtensions"]` in generator. Vector columns use `Unsupported("vector(1536)")` in Prisma schema.
+3. **pgvector extension enabled:** Use `previewFeatures = ["postgresqlExtensions"]` in generator. Vector columns use `Unsupported("vector(768)")` in Prisma schema.
 
 4. **All user-scoped tables cascade on user delete.** `onDelete: Cascade` for user-owned data.
 
@@ -779,7 +779,7 @@ This is a learning project. When implementing significant features, briefly expl
 17. **No ADR for significant decisions.** Even if you think it's obvious now, write it.
 18. **Premature optimization.** Measure first. Optimize when data shows need.
 19. **AI prompts as string literals in services.** Use versioned prompt templates.
-20. **Forgetting to log AI calls.** Every Gemini/OpenAI call goes through provider that logs to AICallLog.
+20. **Forgetting to log AI calls.** Every Gemini call goes through provider that logs to AICallLog.
 21. **Suggesting Docker Compose for local PostgreSQL/Redis dev.** Per PRD Section 3.3 and ADR-0002, local dev connects to Neon `dev` branch + Upstash directly. Docker is ONLY for testcontainers (integration tests) and production image builds. Don't add `docker-compose.yml` for routine dev databases.
 22. **Running migrations against `main` Neon branch directly.** Always migrate `dev` branch first. After validation, migrate `test` and then production `main`. Never let untested migrations hit production data.
 23. **Using Prisma 5 patterns or Prisma 7 patterns.** Per PRD, stack uses Prisma 6.x. Training data may bias toward Prisma 5 (older) or default to Prisma 7 (newer). Both are wrong for this project. Reference official Prisma 6 docs when uncertain. Watch for: schema syntax differences, env variable handling, datasource URL location (still in schema for v6, moves to prisma.config.ts in v7).
