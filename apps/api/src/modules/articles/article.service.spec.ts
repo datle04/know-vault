@@ -43,6 +43,8 @@ describe('ArticlesService', () => {
   beforeEach(async () => {
     vi.resetAllMocks();
 
+    mockProcessor.process.mockResolvedValue(undefined);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ArticlesService,
