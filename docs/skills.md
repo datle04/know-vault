@@ -375,7 +375,9 @@ fc.assert(
 
 ### Skill: AI Output Quality Evaluation
 
-**Status:** ⏳ Planned for Phase 2
+**Status:** ⏳ Deferred to Phase 8
+**Note:** Deferred from Phase 2 — evaluation framework requires ground truth data
+and at least one prompt iteration to compare. See `docs/explorations/03-ai-quality.md`.
 
 **Evidence locations:**
 
