@@ -28,7 +28,6 @@ interface ArticlesResponse {
 
 export default function DashboardPage() {
   const t = useTranslations('articles.list');
-  const tStatus = useTranslations('articles.status');
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [total, setTotal] = useState(0);
