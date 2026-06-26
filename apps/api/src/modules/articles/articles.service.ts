@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { PrismaService } from '../../infrastructure/persistence/prisma.service.js';
@@ -28,6 +29,8 @@ type ArticleRecord = {
 
 @Injectable()
 export class ArticlesService {
+  private readonly logger = new Logger(ArticlesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly processor: ArticleProcessorService,
@@ -70,13 +73,10 @@ export class ArticlesService {
       select: this.articleSelect(),
     });
 
-    // Exploration 2 - Approach A: synchronous processing
-    // Intentionally blocks HTTP response. Documents pain points:
-    // - Request times out for large articles (30-60s)
-    // - Cannot scale beyond 1 concurrent save
-    // - User waits entire processing time
-    // Approach B (fire-and-forget) will address these in Phase 2 iteration.
-    await this.processor.process(article.id, userId);
+    // Approach B (fire-and-forget)
+    this.processor.process(article.id, userId).catch((err: unknown) => {
+      this.logger.error(`Background processing failed for ${article.id}`, err);
+    });
 
     return article;
   }
