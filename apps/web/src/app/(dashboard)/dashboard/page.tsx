@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { api } from '../../../lib/api';
+import { ArticleStatusBadge } from '@/components/articles/ArticleStatusBadge';
 
 interface Article {
   id: string;
   title: string;
   url: string;
   savedAt: string;
-  status: string;
+  status: 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
   wordCount: number;
   readingTimeMin: number;
   author: string | null;
@@ -104,7 +105,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-400 mt-0.5 truncate">{article.url}</p>
                 </div>
                 <span className="text-xs text-gray-500 shrink-0">
-                  {tStatus(article.status as 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED')}
+                  <ArticleStatusBadge status={article.status} />
                 </span>
               </div>
 
