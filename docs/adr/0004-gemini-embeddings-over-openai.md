@@ -1,4 +1,4 @@
-# ADR-0004: Use Gemini text-embedding-004 Instead of OpenAI for Embeddings
+# ADR-0004: Use Gemini text-embedding-001 Instead of OpenAI for Embeddings
 
 **Status:** Accepted
 **Date:** 2026-06-25
@@ -13,12 +13,12 @@ conflicts with Rule #5 (free tier only for MVP). While the per-token cost is
 negligible (~$0.001 for 100 articles), requiring a credit card creates a
 hard blocker for zero-cost operation.
 
-Google's text-embedding-004 model is available under the same free-tier
+Google's gemini-embedding-001 model is available under the same free-tier
 API key as Gemini Flash, with no billing requirement.
 
 ## Decision
 
-Replace OpenAI text-embedding-3-small with Google text-embedding-004 for
+Replace OpenAI text-embedding-3-small with Google gemini-embedding-001 for
 all vector embeddings in KnowVault MVP.
 
 ## Alternatives Considered
@@ -28,7 +28,7 @@ all vector embeddings in KnowVault MVP.
 - Pros: 1536 dimensions (higher expressiveness), widely used
 - Cons: Requires credit card even on free tier; violates Rule #5
 
-### Alternative B: Google text-embedding-004 (chosen)
+### Alternative B: Google gemini-embedding-001 (chosen)
 
 - Pros: Free tier (same key as Gemini), no billing required, good multilingual quality
 - Cons: 768 dimensions vs 1536 (lower expressiveness); less documented in community
