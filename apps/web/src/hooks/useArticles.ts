@@ -13,6 +13,7 @@ interface Article {
   wordCount: number;
   readingTimeMin: number;
   language: string;
+  aiCost: number;
 }
 
 interface ArticleListResponse {

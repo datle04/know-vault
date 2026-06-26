@@ -16,6 +16,7 @@ interface Article {
   readingTimeMin: number;
   author: string | null;
   siteName: string | null;
+  aiCost: number;
 }
 
 interface ArticlesResponse {
@@ -113,6 +114,7 @@ export default function DashboardPage() {
                 {article.author && <span>{article.author}</span>}
                 <span>{t('readingTime', { min: article.readingTimeMin })}</span>
                 <span>{t('wordCount', { count: article.wordCount })}</span>
+                <span title="AI processing cost">${article.aiCost.toFixed(4)}</span>
                 <span>{new Date(article.savedAt).toLocaleDateString()}</span>
               </div>
             </div>

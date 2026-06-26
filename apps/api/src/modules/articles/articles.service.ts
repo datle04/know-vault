@@ -176,6 +176,7 @@ export class ArticlesService {
       readingTimeMin: true,
       language: true,
       processedAt: true,
+      aiCost: true,
       // content excluded by default - too large for list views
     };
   }
