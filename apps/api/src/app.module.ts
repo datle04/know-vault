@@ -5,6 +5,7 @@ import { PrismaModule } from './infrastructure/persistence/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { ArticlesModule } from './modules/articles/articles.module.js';
+import { ExtensionModule } from './modules/extension/extension.module.js';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ArticlesModule } from './modules/articles/articles.module.js';
     PrismaModule,
     AuthModule,
     ArticlesModule,
+    ExtensionModule,
   ],
   providers: [
     {

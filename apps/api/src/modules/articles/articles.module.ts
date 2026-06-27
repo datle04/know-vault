@@ -8,5 +8,6 @@ import { AiModule } from '../ai/providers/ai.module.js';
   imports: [AiModule],
   controllers: [ArticlesController],
   providers: [ArticlesService, ArticleProcessorService],
+  exports: [ArticleProcessorService],
 })
 export class ArticlesModule {}
