@@ -534,23 +534,26 @@ and at least one prompt iteration to compare. See `docs/explorations/03-ai-quali
 
 ### Skill: Browser Extension Development (Manifest V3)
 
-**Status:** ⏳ Planned for Phase 3
+**Status:** ✅ Evidenced (Phase 3)
 
 **Evidence locations:**
 
-- `apps/extension/` — Complete extension app
-- `apps/extension/public/manifest.json` — Manifest V3
-- `apps/extension/src/background/service-worker.ts` — Service worker
-- `apps/extension/src/content/content-script.ts` — Content extraction
+- `apps/extension/public/manifest.json` — Manifest V3 config
+- `apps/extension/src/shared/messages.ts` — Type-safe discriminated union message contracts
+- `apps/extension/src/shared/api-client.ts` — Auth token management via chrome.storage.session
+- `apps/extension/src/background/service-worker.ts` — Orchestrates save flow, owns auth state
+- `apps/extension/src/content/content-script.ts` — DOM extraction with Readability.js, document clone pattern
+- `apps/extension/src/popup/App.tsx` — Popup UI with login form + save flow + duplicate detection
+- `docs/adr/0005-browser-extension-architecture.md` — Architecture rationale
 
 **What to look for:**
 
-- Manifest V3 compliance (no `manifest_version: 2`)
-- Service worker (not persistent background page)
-- Mozilla Readability for article extraction
-- Least-privilege permissions
-- Message passing between background/content/popup
-- Type-safe message contracts
+- Manifest V3 compliance — `service_worker` (not `background.page`), `"type": "module"`
+- `document.cloneNode(true)` before Readability — prevents page mutation
+- `return true` in content script listener — keeps async message channel open
+- `chrome.storage.session` for token — not localStorage (inaccessible in service worker)
+- Discriminated union in `messages.ts` — TypeScript narrows payload per message type
+- 3 separate execution contexts with single responsibility each
 
 ---
 
@@ -676,7 +679,7 @@ and at least one prompt iteration to compare. See `docs/explorations/03-ai-quali
 
 ### Skill: Architecture Decision Records (ADRs)
 
-**Status:** 🟡 Partially evidenced (4 ADRs: stack choices, local dev strategy, Vitest over Jest, Gemini embeddings)
+**Status:** 🟡 Partially evidenced (5 ADRs: stack choices, local dev strategy, Vitest over Jest, Gemini embeddings, extension architecture)
 
 **Evidence locations:**
 
@@ -684,6 +687,7 @@ and at least one prompt iteration to compare. See `docs/explorations/03-ai-quali
 - `docs/adr/0002-local-development-strategy.md` — Hybrid cloud/Docker dev strategy
 - `docs/adr/0003-vitest-over-jest.md` — Testing framework decision with ESM rationale
 - `docs/adr/0004-gemini-embeddings-over-openai.md` — Gemini-only AI decision (no OpenAI billing required)
+- `docs/adr/0005-browser-extension-architecture.md` — MV3 architecture decision, 3 execution contexts rationale
 
 **What to look for:**
 
@@ -803,5 +807,6 @@ If you find skills claimed without evidence, or evidence that doesn't actually d
 | 2026-06-18    | Renamed "Container & Local Development" → "Containerization & Deployment"; removed incorrect docker-compose.yml reference per ADR-0002 and PRD Section 3.3; added "Database Branching Workflows (Neon)" skill entry; added cross-reference from "Database Design & Optimization" to ADR-0002 |
 | 2026-06-19    | Phase 0 complete — marked CI/CD, Monorepo Management, ADRs as 🟡 Partially evidenced with specific evidence locations from Phase 0 commits                                                                                                                                                   |
 | 2026-06-24    | Phase 1 complete — marked DDD, REST API, Auth/JWT as ✅ Evidenced; updated CI/CD, Database, Next.js, State Management, ADRs                                                                                                                                                                  |
+| 2026-06-28    | Browser Extension skill ✅ Evidenced after Phase 3 completion; ADR-0005 added                                                                                                                                                                                                                |
 
 [Each phase completion will add an entry here documenting which skills moved from ⏳ to evidenced]
