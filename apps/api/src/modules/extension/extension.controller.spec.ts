@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   INestApplication,
   ValidationPipe,
-  BadRequestException,
   ExecutionContext,
 } from '@nestjs/common';
 import { vi, describe, it, expect, beforeEach, afterAll } from 'vitest';
