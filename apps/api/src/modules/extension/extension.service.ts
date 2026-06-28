@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ArticleProcessorService } from '../articles/article-processor.service.js';
 import { QuickSaveDto } from './dto/quick-save.dto.js';
-import { ArticleUrl } from '@/domain/article/article-url.vo.js';
-import { PrismaService } from '@/infrastructure/persistence/prisma.service.js';
+import { ArticleUrl } from '../../domain/article/article-url.vo.js';
+import { PrismaService } from '../../infrastructure/persistence/prisma.service.js';
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
 
@@ -82,7 +82,7 @@ export class ExtensionService {
     const reader = new Readability(dom.window.document);
     const parsed = reader.parse();
     return {
-      title: parsed?.title ?? fallbackTitle ?? url,
+      title: parsed?.title || fallbackTitle || url, // || catches empty string
       text: parsed?.textContent ?? '',
       html: parsed?.content ?? html,
       author: parsed?.byline ?? undefined,

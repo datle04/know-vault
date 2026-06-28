@@ -1,4 +1,8 @@
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../../common/decorators/current-user.decorator.js';
 import {
   BadRequestException,
   Body,
@@ -10,10 +14,6 @@ import {
 } from '@nestjs/common';
 import { ExtensionService } from './extension.service.js';
 import { QuickSaveDto } from './dto/quick-save.dto.js';
-import {
-  AuthenticatedUser,
-  CurrentUser,
-} from '@/common/decorators/current-user.decorator.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('extension')
