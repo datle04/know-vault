@@ -58,12 +58,18 @@ export class GeminiProvider implements AIProvider {
     prompt: string,
     options?: GenerationOptions,
   ): Promise<T> {
-    const result = await this.generateText(prompt, {
-      ...options,
-      temperature: options?.temperature ?? 0.2,
+    const response = await this.ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        temperature: options?.temperature ?? 0.2,
+        maxOutputTokens: options?.maxTokens ?? 4096,
+        responseMimeType: 'application/json',
+      },
     });
-    const cleaned = result.text.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(cleaned) as T;
+
+    const text = response.text ?? '';
+    return JSON.parse(text) as T;
   }
 
   generateEmbedding(_text: string): Promise<EmbeddingResult> {
