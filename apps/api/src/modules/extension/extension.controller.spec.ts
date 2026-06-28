@@ -10,20 +10,10 @@ import request from 'supertest';
 import { ExtensionController } from './extension.controller.js';
 import { ExtensionService } from './extension.service.js';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard.js';
-import { url } from 'inspector';
 
 const mockExtensionService = {
   quickSave: vi.fn(),
   checkUrl: vi.fn(),
-};
-
-// mock JWT
-const mockJwtGuard = {
-  canActivate: vi.fn().mockImplementation((context) => {
-    const req = context.switchToHttp().getRequest();
-    req.user = { id: 'user-1', email: 'test@example.com' };
-    return true;
-  }),
 };
 
 describe('ExtensionController', () => {
