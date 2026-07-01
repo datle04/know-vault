@@ -288,20 +288,21 @@ If a skill is listed but evidence shows "⏳ Planned for Phase X", that means I'
 
 ### Skill: Property-Based Testing
 
-**Status:** ⏳ Planned for Phase 1, expanded in Phase 4
+**Status:** ✅ Evidenced (Phase 4 — SM-2 algorithm); knowledge graph traversals still ⏳ (later in Phase 4)
 
 **Evidence locations:**
 
-- `apps/api/src/domain/review/sm2.service.spec.ts` ⏳ — SM-2 algorithm tests
-- `apps/api/src/domain/concept/knowledge-graph.service.spec.ts` ⏳
+- `apps/api/src/domain/review/sm2.service.ts` — Pure SM-2 implementation under test
+- `apps/api/src/domain/review/sm2.service.spec.ts` — 6 example-based + 5 property-based tests (fast-check)
+- `apps/api/src/domain/concept/knowledge-graph.service.spec.ts` ⏳ (later in Phase 4)
 
 **What to look for:**
 
 - Use of `fast-check` library
-- Generators for domain types (quality, easiness, intervals)
+- Generators for domain types (quality 0-5, easiness 1.3-2.5, intervals, repetitions)
+- 5 invariants asserted: interval ≥ 1; EF ≥ 1.3 floor; quality < 3 hard-resets interval & repetitions; quality ≥ 3 increments repetitions by 1; quality ≥ 4 never lowers EF
 - Properties verified for all valid inputs (not just examples)
 - Shrinking to minimal failing case when tests fail
-- Bugs caught by property tests that example tests missed
 
 **Example property:**
 
@@ -808,5 +809,6 @@ If you find skills claimed without evidence, or evidence that doesn't actually d
 | 2026-06-19    | Phase 0 complete — marked CI/CD, Monorepo Management, ADRs as 🟡 Partially evidenced with specific evidence locations from Phase 0 commits                                                                                                                                                   |
 | 2026-06-24    | Phase 1 complete — marked DDD, REST API, Auth/JWT as ✅ Evidenced; updated CI/CD, Database, Next.js, State Management, ADRs                                                                                                                                                                  |
 | 2026-06-28    | Browser Extension skill ✅ Evidenced after Phase 3 completion; ADR-0005 added                                                                                                                                                                                                                |
+| 2026-07-01    | Property-Based Testing ✅ Evidenced (Phase 4 PR-1) — SM-2 algorithm with 5 fast-check invariants                                                                                                                                                                                             |
 
 [Each phase completion will add an entry here documenting which skills moved from ⏳ to evidenced]
